@@ -60,10 +60,6 @@
 #include <TargetConditionals.h>
 #endif
 
-#if defined(VITA)
-#include "vita_input.h"
-#endif
-
 #if SDL_VERSION_ATLEAST(2,0,4) && !defined(__EMSCRIPTEN__) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IOS)
 #define SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE    1
 #else
@@ -109,43 +105,6 @@ static void ImGui_ImplSDL2_SetClipboardText(void*, const char* text)
     SDL_SetClipboardText(text);
 }
 
-#ifdef VITA
-#include "vita_input.h"
-#include <debugnet.h>
-
-/**
- * Translates an SDL Joystick Button to an SDL Key Code 
- * for quickly binding keyboard/Imgui events to Vita
- * gamepad.
- * 
- * This function returns the keycode, which is used as an index
- * to set keys to 0 or 1 in Imgui's "io.KeysDown" property.
- */
-static inline int vita_translate_joystick_imgui(int joystickButton)
-{
-    // const VITA_BUTTONS asVb = (const VITA_BUTTONS)joystickButton;
-
-    // debugNetPrintf(DEBUG, "%d -> imgui translating\n", joystickButton);
-    // switch(asVb)
-    // {
-    // case D_UP:
-    //     return SDL_SCANCODE_UP;
-    // case D_RIGHT:
-    //     return SDL_SCANCODE_RIGHT;
-    // case D_DOWN:
-    //     return SDL_SCANCODE_DOWN;
-    // case D_LEFT:
-    //     return SDL_SCANCODE_LEFT;
-    // case CROSS:
-    //     return SDL_SCANCODE_RETURN;
-    // case CIRCLE:
-    // case TRIANGLE:
-    //     return SDL_SCANCODE_ESCAPE;
-    // }
-    return 0;
-}
-#endif
-
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
 // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
@@ -176,13 +135,6 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
     case SDL_TEXTINPUT:
         {
             io.AddInputCharactersUTF8(event->text.text);
-            return true;
-        }
-    case SDL_JOYBUTTONUP:
-    case SDL_JOYBUTTONDOWN:
-        {    
-            int key = vita_translate_joystick_imgui(event->jbutton.button);
-            io.KeysDown[key] = (event->type == SDL_JOYBUTTONDOWN);
             return true;
         }
     case SDL_KEYDOWN:

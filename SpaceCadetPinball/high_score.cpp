@@ -4,6 +4,114 @@
 #include "memory.h"
 #include "options.h"
 
+#if 1
+#include <psp2/ime_dialog.h>
+#include <psp2/apputil.h>
+#include <codecvt>
+#ifndef NDEBUG
+#include <debugnet.h>
+#endif
+#include "winmain.h"
+
+#define DISPLAY_WIDTH			960
+#define DISPLAY_HEIGHT			544
+#define DISPLAY_STRIDE_IN_PIXELS	1024
+
+static SceImeDialogParam _InternalIMEParams = {0};
+static char16_t _IMEInput[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1] = {0};
+static bool _HasInit = false;
+
+static void _Vita_ShowIME()
+{
+	if(_HasInit == false)
+	{
+		// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Info", "You should see an IME screen pop up now.", winmain::MainWindow);
+
+		SDL_StartTextInput();
+		if(SDL_IsTextInputActive() && SDL_GetEventState(SDL_TEXTEDITING) == SDL_DISABLE /*SDL_IsScreenKeyboardShown(winmain::MainWindow) == false*/)
+		{
+			debugNetPrintf(DEBUG, "SDL_IsTextInputActive is true. stopping text input.\n");
+			SDL_StopTextInput();
+		}
+		// while()
+		// {
+		// 	SDL_Delay(10);
+		// }
+		
+#if 0
+		SceAppUtilInitParam auInitParam = {};
+		SceAppUtilBootParam auBootParam = {};
+		SceCommonDialogConfigParam scdConfigParam = {};
+		SceCommonDialogUpdateParam scdUpdateParam = {};
+
+		sceAppUtilInit(&auInitParam, &auBootParam);
+		sceCommonDialogSetConfigParam(&scdConfigParam);
+		bool said_yes = false;
+		bool shown_dialog = false;
+
+		sceImeDialogParamInit(&_InternalIMEParams);
+		_InternalIMEParams.supportedLanguages = SCE_IME_LANGUAGE_ENGLISH;
+		_InternalIMEParams.languagesForced = SCE_TRUE;
+		_InternalIMEParams.type = SCE_IME_DIALOG_TEXTBOX_MODE_DEFAULT;
+		_InternalIMEParams.option = 0;
+		_InternalIMEParams.textBoxMode = SCE_IME_DIALOG_TEXTBOX_MODE_DEFAULT;
+		_InternalIMEParams.title = (SceWChar16*)u"Enter High Score Name";
+		_InternalIMEParams.maxTextLength = SCE_IME_DIALOG_MAX_TEXT_LENGTH;
+		_InternalIMEParams.initialText = (SceWChar16*)u"";
+		_InternalIMEParams.inputTextBuffer = (SceWChar16*)_IMEInput;
+
+		SceInt32 result = sceImeDialogInit(&_InternalIMEParams);
+		debugNetPrintf(DEBUG, "sceImeDialogInit: %d\n", result);
+
+		SDL_Surface *framebuffer = SDL_GetWindowSurface(winmain::MainWindow);
+
+
+
+		while(!said_yes)
+		{
+			SceCommonDialogStatus status = sceImeDialogGetStatus();
+			if (status == SCE_COMMON_DIALOG_STATUS_FINISHED) {
+				SceImeDialogResult result={};
+				sceImeDialogGetResult(&result);
+
+				const char16_t* last_input = (result.button == SCE_IME_DIALOG_BUTTON_ENTER) ? _IMEInput:u"";
+
+				// std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> cv;
+				// std::string converted = cv.to_bytes(last_input);
+
+				debugNetPrintf(DEBUG, "Last Input: is a wide string! UGH!!!!\n");
+
+				said_yes=!memcmp(last_input,u"yes",4*sizeof(u' '));
+				sceImeDialogTerm();
+			}
+			else
+			{
+				if(status == SCE_COMMON_DIALOG_STATUS_RUNNING)
+					debugNetPrintf(DEBUG, "sceImeDialog status: SCE_COMMON_DIALOG_STATUS_RUNNING\n");
+				else if(status == SCE_COMMON_DIALOG_STATUS_NONE)
+					debugNetPrintf(DEBUG, "sceImeDialog status: SCE_COMMON_DIALOG_STATUS_NONE\n");
+				else
+					debugNetPrintf(DEBUG, "Unknown sceImeDialog status: %u\n", status);
+			}
+
+			scdUpdateParam = (SceCommonDialogUpdateParam)
+			{
+				{NULL, framebuffer->pixels, (SceGxmColorSurfaceType)0, (SceGxmColorFormat)0, framebuffer->w, framebuffer->h, framebuffer->pitch}, 0
+			};
+
+			sceCommonDialogUpdate(&scdUpdateParam);
+		}
+
+
+		
+		_HasInit = true;
+#endif
+	}
+}
+// TODO: Do I need to sceSysmoduleLoadModule(SCE_SYSMODULE_IME); 
+// Or does SDL itself already do this for me by design? (It shows dialogs, but maybe not IMEs?)
+#endif
+
 int high_score::dlg_enter_name;
 int high_score::dlg_score;
 int high_score::dlg_position;
@@ -150,6 +258,8 @@ void high_score::RenderHighScoreDialog()
 		ImGui::OpenPopup("High Scores");
 	}
 
+	dlg_enter_name = 1;
+
 	bool unused_open = true;
 	if (ImGui::BeginPopupModal("High Scores", &unused_open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
@@ -175,7 +285,20 @@ void high_score::RenderHighScoreDialog()
 				{
 					score = dlg_score;
 					ImGui::PushItemWidth(200);
-					ImGui::InputText("", default_name, IM_ARRAYSIZE(default_name));
+					ImGui::InputText("name_input", default_name, IM_ARRAYSIZE(default_name));
+
+					// VITA HACK
+					auto &io = ImGui::GetIO();
+					auto active = ImGui::GetActiveID();
+					auto last = GImGui->LastActiveId;
+					if (io.WantCaptureKeyboard && active != 0 && active == last)
+					{
+						printf("Please capture keyboard for %u. Last: %u; Equal: %d\n", active, last, active == last);
+					#ifdef VITA
+						_Vita_ShowIME();
+					#endif
+					}
+					// END VITA HACK
 				}
 				else
 				{

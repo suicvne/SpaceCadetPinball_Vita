@@ -11,10 +11,21 @@
 #include "resource.h"
 
 #ifdef VITA
+#ifndef NDEBUG
 #include <debugnet.h>
+#define DEBUG_IP "192.168.0.18"
+#define DEBUG_PORT 18194
+#endif
 #include "vita_input.h"
 
 static bool vita_imgui_enabled = false;
+static bool needs_focus = false;
+
+static inline void vita_set_imgui_enabled(bool enabled)
+{
+	if(enabled) needs_focus = true;
+	vita_imgui_enabled = enabled;
+}
 
 static inline int vita_translate_joystick(int joystickButton)
 {
@@ -40,6 +51,24 @@ static inline int vita_translate_joystick(int joystickButton)
 	return 0;
 }
 #endif
+
+
+
+static inline void vita_setup_custom_imgui_style()
+{
+	ImGuiStyle& curStyle = ImGui::GetStyle();
+	curStyle.ScaleAllSizes(2.f);
+
+	// const std::string archivo_path = std::string(SDL_GetBasePath()) + std::string("ArchivoNarrow-Regular.ttf");
+	const std::string archivo_path = std::string(SDL_GetBasePath()) + std::string("Ruda-Bold.ttf");
+
+	// ImFontConfig config;
+	// auto glyphRanges = winmain::ImIO->Fonts->GetGlyphRangesDefault();
+	
+	// vita_custom_font = winmain::ImIO->Fonts->AddFontFromFileTTF(archivo_path.c_str(), 22, &config, glyphRanges);
+	// winmain::ImIO->Fonts->Build();
+	winmain::ImIO->FontGlobalScale = 2.f;
+}
 
 
 const double TargetFps = 60, TargetFrameTime = 1000 / TargetFps;
@@ -103,7 +132,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 
 #if VITA
 	std::string dataFullPath = BasePath + DatFileName;
-	debugNetInit("192.168.0.45", 18194, DEBUG);
+	debugNetInit(DEBUG_IP, DEBUG_PORT, DEBUG);
 	debugNetPrintf(INFO, "The data path is '%s'\n", dataFullPath.c_str());
 
 	vita_init_joystick();
@@ -160,8 +189,11 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 #endif
 	ImIO = &io;
+
 	// ImGui_ImplSDL2_Init is private, we are not actually using ImGui OpenGl backend
 	ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
+
+	
 
 	auto prefPath = SDL_GetPrefPath(nullptr, "SpaceCadetPinball");
 	auto iniPath = std::string(prefPath) + "imgui_pb.ini";
@@ -212,6 +244,13 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 
 	DWORD updateCounter = 300u, frameCounter = 0, prevTime = 0u;
 	then = timeGetTimeAlt();
+
+
+	// io.Fonts->AddFontDefault();
+	// io.Fonts->Build();
+	vita_setup_custom_imgui_style();
+	
+
 
 	double sdlTimerResMs = 1000.0 / static_cast<double>(SDL_GetPerformanceFrequency());
 	auto frameStart = static_cast<double>(SDL_GetPerformanceCounter());
@@ -324,22 +363,33 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 				// Keep track of remainder, limited to one frame time.
 				frameStart = frameEnd - std::min(elapsedMs - TargetFrameTime, TargetFrameTime) / sdlTimerResMs;
 
+#ifdef VITA
 				if(vita_imgui_enabled)
 				{
+#endif
 					ImGui_ImplSDL2_NewFrame();
+						
+
 					ImGui::NewFrame();
+					
 
 					RenderUi();
+#ifdef VITA
 				}
+#endif
 
 				SDL_RenderClear(renderer);
 				gdrv::BlitScreen();
 
+#ifdef VITA
 				if(vita_imgui_enabled)
 				{
+#endif
 					ImGui::Render();
 					ImGuiSDL::Render(ImGui::GetDrawData());
+#ifdef VITA
 				}
+#endif
 
 				SDL_RenderPresent(renderer);
 				frameCounter++;
@@ -520,19 +570,27 @@ void winmain::RenderUi()
 			ImGui::EndMenu();
 		}
 
-		if(ImGui::IsWindowAppearing())
+		if(ImGui::IsWindowAppearing() 
+#ifdef VITA
+			|| needs_focus
+#endif
+			)
 		{
+#ifdef VITA
+			needs_focus = false;
+#endif
 			auto defaultMenu = ImGui::GetID("Launch Ball");
 			auto parentMenu = ImGui::GetID("Game");
+#if defined(VITA) && !defined(NDEBUG)
 			debugNetPrintf(DEBUG, "FOCUSING %u & its child %u\n", parentMenu, defaultMenu);
+#endif
 			ImGui::OpenPopup(parentMenu);
+			ImGui::SetFocusID(defaultMenu, ImGui::GetCurrentWindow());
 			GImGui->NavId = defaultMenu;
 		}
 
 		ImGui::EndMainMenuBar();
 	}
-
-	
 
 	a_dialog();
 	high_score::RenderHighScoreDialog();
@@ -564,6 +622,8 @@ int winmain::event_handler(const SDL_Event* event)
 	{
 		switch (event->type)
 		{
+		case SDL_TEXTEDITING:
+		case SDL_TEXTINPUT:
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 		case SDL_JOYBUTTONDOWN:
@@ -598,7 +658,7 @@ int winmain::event_handler(const SDL_Event* event)
 	case SDL_JOYBUTTONUP:
 		if(((VITA_BUTTONS)event->jbutton.button) == START)
 		{
-			vita_imgui_enabled = !vita_imgui_enabled;
+			vita_set_imgui_enabled(!vita_imgui_enabled);
 			/*auto gameMenu = ImGui::GetID("Game");
 			if(gameMenu != 0)
 				ImGui::SetFocusID(gameMenu, ImGui::GetCurrentWindow());
@@ -814,6 +874,11 @@ void winmain::a_dialog()
 	{
 		ImGui::TextUnformatted("3D Pinball for Windows - Space Cadet");
 		ImGui::TextUnformatted("Decompiled -> Ported to SDL");
+#ifdef VITA
+		ImGui::Separator();
+		ImGui::TextUnformatted("Ported to Vita by Axiom (axiom@ignoresolutions.xyz)");
+		ImGui::TextUnformatted("https://github.com/suicvne/SpaceCadetPinball_Vita/");
+#endif
 		ImGui::Separator();
 
 		if (ImGui::Button("Ok"))
