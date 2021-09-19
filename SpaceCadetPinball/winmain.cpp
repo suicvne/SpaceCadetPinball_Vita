@@ -131,9 +131,11 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	DatFileName = options::get_string("Pinball Data", pinball::get_rc_string(168, 0));
 
 #if VITA
+#ifndef NDEBUG
 	std::string dataFullPath = BasePath + DatFileName;
 	debugNetInit(DEBUG_IP, DEBUG_PORT, DEBUG);
 	debugNetPrintf(INFO, "The data path is '%s'\n", dataFullPath.c_str());
+#endif
 
 	vita_init_joystick();
 #endif
@@ -675,9 +677,6 @@ int winmain::event_handler(const SDL_Event* event)
 		pb::keyup(event->key.keysym.sym);
 		break;
 	case SDL_KEYDOWN:
-#ifdef VITA
-	debugNetPrintf(DEBUG, "keysym: %d\n", event->key.keysym.sym);
-#endif
 		if (!event->key.repeat)
 			pb::keydown(event->key.keysym.sym);
 		switch (event->key.keysym.sym)
@@ -827,7 +826,7 @@ int winmain::event_handler(const SDL_Event* event)
 		}
 		break;
 	default:
-#ifdef VITA
+#if defined(VITA) && !defined(NDEBUG)
 		if(event->type != 1536 && event->type != 1619 && event->type != 1616)
 			debugNetPrintf(DEBUG, "Default Event Type: %d\n", event->type);
 #endif

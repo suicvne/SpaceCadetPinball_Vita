@@ -26,7 +26,9 @@ static void _Vita_ShowIME()
 {
 	if(_HasInit == false)
 	{
+#ifndef NDEBUG
 		debugNetPrintf(DEBUG, "Starting text input.\n");
+#endif
 		SDL_StartTextInput();
 		_HasInit = true;
 	}
@@ -34,7 +36,9 @@ static void _Vita_ShowIME()
 
 void high_score::vita_done_input()
 {
+#ifndef NDEBUG
 	debugNetPrintf(DEBUG, "vita_done_input\n");
+#endif
 	SDL_StopTextInput();
 	_JustGotWord = true;
 }
@@ -234,7 +238,9 @@ void high_score::RenderHighScoreDialog()
 						}
 						else
 						{
+						#ifndef NDEBUG
 							debugNetPrintf(DEBUG, "Please capture keyboard for %u. Last: %u; Equal: %d\n", active, last, active == last);
+						#endif
 						#ifdef VITA
 							_Vita_ShowIME();
 						#endif
