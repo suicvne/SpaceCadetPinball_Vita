@@ -623,7 +623,11 @@ int winmain::event_handler(const SDL_Event* event)
 		switch (event->type)
 		{
 		case SDL_TEXTEDITING:
+			debugNetPrintf(DEBUG, "SDL_TEXTEDITING\n");
 		case SDL_TEXTINPUT:
+			debugNetPrintf(DEBUG, "SDL_TEXTINPUT\n");
+			debugNetPrintf(DEBUG, "Str: '%s'\n", event->text.text);
+			high_score::vita_done_input();
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 		case SDL_JOYBUTTONDOWN:
@@ -810,7 +814,9 @@ int winmain::event_handler(const SDL_Event* event)
 			options::Options.FullScreen = 0;
 			Sound::Deactivate();
 			midi::music_stop();
+		#ifndef VITA
 			has_focus = 0;
+		#endif
 			gdrv::get_focus();
 			pb::loose_focus();
 			break;
@@ -823,7 +829,7 @@ int winmain::event_handler(const SDL_Event* event)
 		break;
 	default:
 #ifdef VITA
-		if(event->type != 1536)
+		if(event->type != 1536 && event->type != 1619 && event->type != 1616)
 			debugNetPrintf(DEBUG, "Default Event Type: %d\n", event->type);
 #endif
 		break;
@@ -845,7 +851,7 @@ int winmain::ProcessWindowMessages()
 
 		return 1;
 	}
-
+	
 	SDL_WaitEvent(&event);
 	return event_handler(&event);
 }

@@ -20,6 +20,9 @@ public:
 	static void show_high_score_dialog(high_score_struct* table);
 	static void show_and_set_high_score_dialog(high_score_struct* table, int score, int pos, LPCSTR defaultName);
 	static void RenderHighScoreDialog();
+#ifdef VITA
+	static void vita_done_input();
+#endif
 private :
 	static int dlg_enter_name;
 	static int dlg_score;

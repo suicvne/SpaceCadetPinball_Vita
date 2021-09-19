@@ -20,23 +20,23 @@
 static SceImeDialogParam _InternalIMEParams = {0};
 static char16_t _IMEInput[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1] = {0};
 static bool _HasInit = false;
+static bool _JustGotWord = false;
 
 static void _Vita_ShowIME()
 {
 	if(_HasInit == false)
 	{
-		// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Info", "You should see an IME screen pop up now.", winmain::MainWindow);
-
+		debugNetPrintf(DEBUG, "Starting text input.\n");
 		SDL_StartTextInput();
-		if(SDL_IsTextInputActive() && SDL_GetEventState(SDL_TEXTEDITING) == SDL_DISABLE /*SDL_IsScreenKeyboardShown(winmain::MainWindow) == false*/)
-		{
-			debugNetPrintf(DEBUG, "SDL_IsTextInputActive is true. stopping text input.\n");
-			SDL_StopTextInput();
-		}
-		// while()
+		// if(SDL_IsTextInputActive() && SDL_GetEventState(SDL_TEXTEDITING) == SDL_ENABLE)
 		// {
-		// 	SDL_Delay(10);
 		// }
+		// else
+		// {
+		// 	debugNetPrintf(DEBUG, "SDL_IsTextInputActive is true. stopping text input.\n");
+		// 	SDL_StopTextInput();
+		// }
+		_HasInit = true;
 		
 #if 0
 		SceAppUtilInitParam auInitParam = {};
@@ -101,11 +101,8 @@ static void _Vita_ShowIME()
 
 			sceCommonDialogUpdate(&scdUpdateParam);
 		}
-
-
-		
-		_HasInit = true;
 #endif
+		
 	}
 }
 // TODO: Do I need to sceSysmoduleLoadModule(SCE_SYSMODULE_IME); 
@@ -119,6 +116,12 @@ char high_score::default_name[32]{};
 high_score_struct* high_score::dlg_hst;
 bool high_score::ShowDialog = false;
 
+void high_score::vita_done_input()
+{
+	debugNetPrintf(DEBUG, "vita_done_input\n");
+	SDL_StopTextInput();
+	_JustGotWord = true;
+}
 
 int high_score::read(high_score_struct* table)
 {
@@ -258,8 +261,6 @@ void high_score::RenderHighScoreDialog()
 		ImGui::OpenPopup("High Scores");
 	}
 
-	dlg_enter_name = 1;
-
 	bool unused_open = true;
 	if (ImGui::BeginPopupModal("High Scores", &unused_open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
@@ -284,19 +285,35 @@ void high_score::RenderHighScoreDialog()
 				if (dlg_enter_name == 1 && dlg_position == row)
 				{
 					score = dlg_score;
+				#ifdef VITA
+					ImGui::PushItemWidth(400);
+				#else
 					ImGui::PushItemWidth(200);
-					ImGui::InputText("name_input", default_name, IM_ARRAYSIZE(default_name));
+				#endif
+					ImGui::InputText("###name_input", default_name, IM_ARRAYSIZE(default_name));
 
 					// VITA HACK
 					auto &io = ImGui::GetIO();
 					auto active = ImGui::GetActiveID();
-					auto last = GImGui->LastActiveId;
+					auto last = ImGui::GetID("###name_input");
 					if (io.WantCaptureKeyboard && active != 0 && active == last)
 					{
-						printf("Please capture keyboard for %u. Last: %u; Equal: %d\n", active, last, active == last);
-					#ifdef VITA
-						_Vita_ShowIME();
-					#endif
+						if(_JustGotWord)
+						{
+							debugNetPrintf(DEBUG, "Just got word\n");
+							_JustGotWord = false;
+							SDL_StopTextInput();
+							ImGui::SetFocusID(ImGui::GetID("Rank"), ImGui::GetCurrentWindow());
+							ImGui::SetActiveID(ImGui::GetID("Rank"), ImGui::GetCurrentWindow());
+							_HasInit = false;
+						}
+						else
+						{
+							debugNetPrintf(DEBUG, "Please capture keyboard for %u. Last: %u; Equal: %d\n", active, last, active == last);
+						#ifdef VITA
+							_Vita_ShowIME();
+						#endif
+						}
 					}
 					// END VITA HACK
 				}
