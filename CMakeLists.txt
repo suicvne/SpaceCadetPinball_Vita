@@ -265,7 +265,8 @@ if(VITA)
     vita_create_vpk(${VITA_EXE_NAME}.vpk ${VITA_TITLEID} ${VITA_EXE_NAME}.self
         VERSION ${VITA_VERSION}
         NAME ${VITA_APP_NAME}
-        FILE    ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
+        FILE    ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/icon0.png sce_sys/icon0.png
+                ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
                 ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
                 ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
     )
