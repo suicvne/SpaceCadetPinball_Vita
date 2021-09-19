@@ -4,7 +4,7 @@
 #include "memory.h"
 #include "options.h"
 
-#if 1
+#if VITA
 #include <psp2/ime_dialog.h>
 #include <psp2/apputil.h>
 #include <codecvt>
@@ -28,82 +28,15 @@ static void _Vita_ShowIME()
 	{
 		debugNetPrintf(DEBUG, "Starting text input.\n");
 		SDL_StartTextInput();
-		// if(SDL_IsTextInputActive() && SDL_GetEventState(SDL_TEXTEDITING) == SDL_ENABLE)
-		// {
-		// }
-		// else
-		// {
-		// 	debugNetPrintf(DEBUG, "SDL_IsTextInputActive is true. stopping text input.\n");
-		// 	SDL_StopTextInput();
-		// }
 		_HasInit = true;
-		
-#if 0
-		SceAppUtilInitParam auInitParam = {};
-		SceAppUtilBootParam auBootParam = {};
-		SceCommonDialogConfigParam scdConfigParam = {};
-		SceCommonDialogUpdateParam scdUpdateParam = {};
-
-		sceAppUtilInit(&auInitParam, &auBootParam);
-		sceCommonDialogSetConfigParam(&scdConfigParam);
-		bool said_yes = false;
-		bool shown_dialog = false;
-
-		sceImeDialogParamInit(&_InternalIMEParams);
-		_InternalIMEParams.supportedLanguages = SCE_IME_LANGUAGE_ENGLISH;
-		_InternalIMEParams.languagesForced = SCE_TRUE;
-		_InternalIMEParams.type = SCE_IME_DIALOG_TEXTBOX_MODE_DEFAULT;
-		_InternalIMEParams.option = 0;
-		_InternalIMEParams.textBoxMode = SCE_IME_DIALOG_TEXTBOX_MODE_DEFAULT;
-		_InternalIMEParams.title = (SceWChar16*)u"Enter High Score Name";
-		_InternalIMEParams.maxTextLength = SCE_IME_DIALOG_MAX_TEXT_LENGTH;
-		_InternalIMEParams.initialText = (SceWChar16*)u"";
-		_InternalIMEParams.inputTextBuffer = (SceWChar16*)_IMEInput;
-
-		SceInt32 result = sceImeDialogInit(&_InternalIMEParams);
-		debugNetPrintf(DEBUG, "sceImeDialogInit: %d\n", result);
-
-		SDL_Surface *framebuffer = SDL_GetWindowSurface(winmain::MainWindow);
-
-
-
-		while(!said_yes)
-		{
-			SceCommonDialogStatus status = sceImeDialogGetStatus();
-			if (status == SCE_COMMON_DIALOG_STATUS_FINISHED) {
-				SceImeDialogResult result={};
-				sceImeDialogGetResult(&result);
-
-				const char16_t* last_input = (result.button == SCE_IME_DIALOG_BUTTON_ENTER) ? _IMEInput:u"";
-
-				// std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> cv;
-				// std::string converted = cv.to_bytes(last_input);
-
-				debugNetPrintf(DEBUG, "Last Input: is a wide string! UGH!!!!\n");
-
-				said_yes=!memcmp(last_input,u"yes",4*sizeof(u' '));
-				sceImeDialogTerm();
-			}
-			else
-			{
-				if(status == SCE_COMMON_DIALOG_STATUS_RUNNING)
-					debugNetPrintf(DEBUG, "sceImeDialog status: SCE_COMMON_DIALOG_STATUS_RUNNING\n");
-				else if(status == SCE_COMMON_DIALOG_STATUS_NONE)
-					debugNetPrintf(DEBUG, "sceImeDialog status: SCE_COMMON_DIALOG_STATUS_NONE\n");
-				else
-					debugNetPrintf(DEBUG, "Unknown sceImeDialog status: %u\n", status);
-			}
-
-			scdUpdateParam = (SceCommonDialogUpdateParam)
-			{
-				{NULL, framebuffer->pixels, (SceGxmColorSurfaceType)0, (SceGxmColorFormat)0, framebuffer->w, framebuffer->h, framebuffer->pitch}, 0
-			};
-
-			sceCommonDialogUpdate(&scdUpdateParam);
-		}
-#endif
-		
 	}
+}
+
+void high_score::vita_done_input()
+{
+	debugNetPrintf(DEBUG, "vita_done_input\n");
+	SDL_StopTextInput();
+	_JustGotWord = true;
 }
 // TODO: Do I need to sceSysmoduleLoadModule(SCE_SYSMODULE_IME); 
 // Or does SDL itself already do this for me by design? (It shows dialogs, but maybe not IMEs?)
@@ -115,13 +48,6 @@ int high_score::dlg_position;
 char high_score::default_name[32]{};
 high_score_struct* high_score::dlg_hst;
 bool high_score::ShowDialog = false;
-
-void high_score::vita_done_input()
-{
-	debugNetPrintf(DEBUG, "vita_done_input\n");
-	SDL_StopTextInput();
-	_JustGotWord = true;
-}
 
 int high_score::read(high_score_struct* table)
 {
@@ -292,7 +218,7 @@ void high_score::RenderHighScoreDialog()
 				#endif
 					ImGui::InputText("###name_input", default_name, IM_ARRAYSIZE(default_name));
 
-					// VITA HACK
+				#ifdef VITA
 					auto &io = ImGui::GetIO();
 					auto active = ImGui::GetActiveID();
 					auto last = ImGui::GetID("###name_input");
@@ -300,7 +226,6 @@ void high_score::RenderHighScoreDialog()
 					{
 						if(_JustGotWord)
 						{
-							debugNetPrintf(DEBUG, "Just got word\n");
 							_JustGotWord = false;
 							SDL_StopTextInput();
 							ImGui::SetFocusID(ImGui::GetID("Rank"), ImGui::GetCurrentWindow());
@@ -315,6 +240,7 @@ void high_score::RenderHighScoreDialog()
 						#endif
 						}
 					}
+				#endif
 					// END VITA HACK
 				}
 				else

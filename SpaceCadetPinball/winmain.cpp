@@ -622,12 +622,11 @@ int winmain::event_handler(const SDL_Event* event)
 	{
 		switch (event->type)
 		{
+	#ifdef VITA
 		case SDL_TEXTEDITING:
-			debugNetPrintf(DEBUG, "SDL_TEXTEDITING\n");
 		case SDL_TEXTINPUT:
-			debugNetPrintf(DEBUG, "SDL_TEXTINPUT\n");
-			debugNetPrintf(DEBUG, "Str: '%s'\n", event->text.text);
 			high_score::vita_done_input();
+	#endif
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 		case SDL_JOYBUTTONDOWN:
