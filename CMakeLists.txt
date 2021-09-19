@@ -3,8 +3,13 @@ project(SpaceCadetPinball)
 
 set(CMAKE_CXX_STANDARD 11)
 
+if(VITA)
+    include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
+endif()
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+if(NOT VITA)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/bin)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMakeModules")
 
@@ -165,6 +170,7 @@ set(SOURCE_FILES
         SpaceCadetPinball/imstb_truetype.h
         )
 
+
 add_executable(SpaceCadetPinball ${SOURCE_FILES})
 
 # Skip pch on foreign code
@@ -183,7 +189,64 @@ target_precompile_headers(SpaceCadetPinball
     SpaceCadetPinball/pch.h
 )
 
-target_link_libraries(SpaceCadetPinball ${SDL2_LIBRARY} ${SDL2_MIXER_LIBRARY})
+if(VITA)
+    message("VITA!!!!")
+    target_compile_definitions(SpaceCadetPinball PUBLIC -DVITA)
+    set(VITA_EXE_NAME SpaceCadetPinballVita)
+    set(VITA_APP_NAME "Space Cadet Pinball")
+    set(VITA_TITLEID "SPACEPINB")
+    set(VERSION "01.00")
+    set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12") # ATTRIBUTE2=12 specifies we need more RAM.
+
+    set(VITA_ADDTL_LIBS
+        debugnet
+        FLAC
+        modplug
+        mad
+        opusfile
+        opus
+        vorbisfile
+        vorbis
+        ogg
+        mpg123
+        mikmod
+        jpeg
+        mathneon
+        SceCtrl_stub
+        SceMotion_stub
+        SceHid_stub
+        SceRtc_stub
+        SceNetCtl_stub
+        SceNet_stub
+        SceLibKernel_stub
+        ScePvf_stub
+        SceAppMgr_stub
+        SceAppUtil_stub
+        ScePgf_stub
+        freetype
+        png
+        jpeg
+        SceCommonDialog_stub
+        m
+        zip
+        z
+        pthread
+        SceGxm_stub
+        SceDisplay_stub
+        SceSysmodule_stub
+        SceTouch_stub
+        SceAudio_stub
+        vitashark
+        SceShaccCg_stub
+        SceSysmem_stub
+        SceIofilemgr_stub
+        SceKernelThreadMgr_stub
+        SceKernelDmacMgr_stub
+        SceVshBridge_stub
+    )
+endif()
+
+target_link_libraries(SpaceCadetPinball ${SDL2_MIXER_LIBRARY} ${SDL2_LIBRARY}  ${VITA_ADDTL_LIBS})
 
 # On Windows, copy DLL to output
 if(WIN32)
@@ -195,4 +258,20 @@ if(WIN32)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SDL2_DLL_PATH}/SDL2.dll" $<TARGET_FILE_DIR:SpaceCadetPinball>
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SDL2_MIXER_DLL_PATH}/SDL2_mixer.dll" $<TARGET_FILE_DIR:SpaceCadetPinball>
         )
+endif()
+
+# Build VPK
+if(VITA)
+    vita_create_self(${VITA_EXE_NAME}.self ./SpaceCadetPinball UNSAFE)
+    vita_create_vpk(${VITA_EXE_NAME}.vpk ${VITA_TITLEID} ${VITA_EXE_NAME}.self
+        VERSION ${VITA_VERSION}
+        NAME ${VITA_APP_NAME}
+        FILE    ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
+                ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
+                ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
+    )
+    add_custom_target(copy 
+        COMMAND cp ${VITA_EXE_NAME}.self eboot.bin
+        DEPENDS ${VITA_EXE_NAME}.self
+    )
 endif()

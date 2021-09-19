@@ -10,6 +10,11 @@
 #include "Sound.h"
 #include "resource.h"
 
+#ifdef VITA
+#include <debugnet.h>
+#endif
+
+
 const double TargetFps = 60, TargetFrameTime = 1000 / TargetFps;
 
 SDL_Window* winmain::MainWindow = nullptr;
@@ -41,6 +46,55 @@ bool winmain::HighScoresEnabled = true;
 bool winmain::DemoActive = false;
 char* winmain::BasePath;
 
+#ifdef VITA
+enum VITA_BUTTONS
+{
+	TRIANGLE,
+	CIRCLE,
+	CROSS,
+	SQUARE,
+	LEFT_SHOULDER,
+	RIGHT_SHOULDER,
+	D_DOWN,
+	D_LEFT,
+	D_UP,
+	D_RIGHT,
+	SELECT,
+	START
+};
+
+void vita_init_joystick()
+{
+	int numJoysticks = SDL_NumJoysticks();
+	debugNetPrintf(DEBUG, "Num Joysticks: %d\n", numJoysticks);
+	if(numJoysticks >= 1)
+	{
+		debugNetPrintf(DEBUG, "Opening Player 1...\n");
+		SDL_Joystick *vita_controls = SDL_JoystickOpen(0);
+	}
+}
+
+int vita_translate_joystick(int joystickButton)
+{
+	const VITA_BUTTONS asVb = (const VITA_BUTTONS)joystickButton;
+
+	debugNetPrintf(DEBUG, "Joystick Button: %d\n", joystickButton);
+	switch(asVb)
+	{
+		case LEFT_SHOULDER:
+			return options::Options.LeftFlipperKey;
+			break;
+		case RIGHT_SHOULDER:
+			return options::Options.RightFlipperKey;
+			break;
+		case CROSS:
+			return options::Options.PlungerKey;
+			break;
+	}
+	return 0;
+}
+
+#endif
 
 uint32_t timeGetTimeAlt()
 {
@@ -61,10 +115,23 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Could not initialize SDL2", SDL_GetError(), nullptr);
 		return 1;
 	}
-	BasePath = SDL_GetBasePath();
 
+#ifdef VITA
+	BasePath = SDL_GetPrefPath(nullptr, "SpaceCadetPinball");
+#else
+	BasePath = SDL_GetBasePath();
+#endif
 	pinball::quickFlag = strstr(lpCmdLine, "-quick") != nullptr;
 	DatFileName = options::get_string("Pinball Data", pinball::get_rc_string(168, 0));
+
+#if VITA
+	std::string dataFullPath = BasePath + DatFileName;
+	debugNetInit("192.168.0.45", 18194, DEBUG);
+	debugNetPrintf(INFO, "The data path is '%s'", dataFullPath.c_str());
+
+	vita_init_joystick();
+#endif
+
 
 	/*Check for full tilt .dat file and switch to it automatically*/
 	auto cadetFilePath = pinball::make_path_name("CADET.DAT");
@@ -136,8 +203,9 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 
 		if (pb::init())
 		{
+			std::string msg = std::string("The .dat file is missing.\nPlace dat file: ") + BasePath + DatFileName;
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Could not load game data",
-				"The .dat file is missing", window);
+				msg.c_str(), window);
 			return 1;
 		}
 
@@ -182,6 +250,9 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 					snprintf(buf, sizeof buf, "Updates/sec = %02.02f Frames/sec = %02.02f ",
 					          300.0f / elapsedSec, frameCounter / elapsedSec);
 					SDL_SetWindowTitle(window, buf);
+#if defined(VITA) && !defined(NDEBUG)
+					debugNetPrintf(DEBUG, buf);
+#endif
 					frameCounter = 0;
 
 					if (DispGRhistory)
@@ -508,10 +579,19 @@ int winmain::event_handler(const SDL_Event* event)
 		fullscrn::shutdown();
 		return_value = 0;
 		return 0;
+	case SDL_JOYBUTTONDOWN:
+		pb::keydown(vita_translate_joystick(event->jbutton.button));
+		break;
+	case SDL_JOYBUTTONUP:
+		pb::keyup(vita_translate_joystick(event->jbutton.button));
+		break;
 	case SDL_KEYUP:
 		pb::keyup(event->key.keysym.sym);
 		break;
 	case SDL_KEYDOWN:
+#ifdef VITA
+	debugNetPrintf(DEBUG, "keysym: %d\n", event->key.keysym.sym);
+#endif
 		if (!event->key.repeat)
 			pb::keydown(event->key.keysym.sym);
 		switch (event->key.keysym.sym)
@@ -572,6 +652,7 @@ int winmain::event_handler(const SDL_Event* event)
 			break;
 		}
 		break;
+#ifndef VITA
 	case SDL_MOUSEBUTTONDOWN:
 		switch (event->button.button)
 		{
@@ -622,6 +703,7 @@ int winmain::event_handler(const SDL_Event* event)
 			break;
 		}
 		break;
+#endif
 	case SDL_WINDOWEVENT:
 		switch (event->window.event)
 		{
@@ -656,7 +738,12 @@ int winmain::event_handler(const SDL_Event* event)
 		default: ;
 		}
 		break;
-	default: ;
+	default:
+#ifdef VITA
+		if(event->type != 1536)
+			debugNetPrintf(DEBUG, "Default Event Type: %d\n", event->type);
+#endif
+		break;
 	}
 
 	return 1;

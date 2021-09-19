@@ -631,8 +631,13 @@ void control::handler(int code, TPinballComponent* cmp)
 	MissionControl(code, cmp);
 }
 
+#if VITA
+#include <debugnet.h>
+#endif
+
 void control::pbctrl_bdoor_controller(int key)
 {
+
 	int v1; // eax
 	int v2; // eax
 	bool v3; // zf
