@@ -196,7 +196,6 @@ if(VITA)
     set(VITA_APP_NAME "Space Cadet Pinball")
     set(VITA_TITLEID "SPACEPINB")
     set(VERSION "01.00")
-    set(VITA_MKSFOEX_FLAGS "-d ATTRIBUTE2=12") # ATTRIBUTE2=12 specifies we need more RAM.
 
     set(VITA_ADDTL_LIBS
         debugnet
@@ -262,7 +261,7 @@ endif()
 
 # Build VPK
 if(VITA)
-    vita_create_self(${VITA_EXE_NAME}.self ./SpaceCadetPinball UNSAFE)
+    vita_create_self(${VITA_EXE_NAME}.self ./SpaceCadetPinball)
     vita_create_vpk(${VITA_EXE_NAME}.vpk ${VITA_TITLEID} ${VITA_EXE_NAME}.self
         VERSION ${VITA_VERSION}
         NAME ${VITA_APP_NAME}

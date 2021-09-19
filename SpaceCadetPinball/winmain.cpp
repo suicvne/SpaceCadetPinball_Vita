@@ -12,6 +12,33 @@
 
 #ifdef VITA
 #include <debugnet.h>
+#include "vita_input.h"
+
+static bool vita_imgui_enabled = false;
+
+static inline int vita_translate_joystick(int joystickButton)
+{
+	const VITA_BUTTONS asVb = (const VITA_BUTTONS)joystickButton;
+
+	switch(asVb)
+	{
+		case LEFT_SHOULDER:
+		    return options::Options.LeftFlipperKey;
+			break;
+		case RIGHT_SHOULDER:
+			return options::Options.RightFlipperKey;
+			break;
+		case CROSS:
+			return options::Options.PlungerKey;
+			break;
+	}
+	return 0;
+}
+#else
+static inline int vita_translate_joystick(int joystickButton)
+{
+	return 0;
+}
 #endif
 
 
@@ -46,56 +73,6 @@ bool winmain::HighScoresEnabled = true;
 bool winmain::DemoActive = false;
 char* winmain::BasePath;
 
-#ifdef VITA
-enum VITA_BUTTONS
-{
-	TRIANGLE,
-	CIRCLE,
-	CROSS,
-	SQUARE,
-	LEFT_SHOULDER,
-	RIGHT_SHOULDER,
-	D_DOWN,
-	D_LEFT,
-	D_UP,
-	D_RIGHT,
-	SELECT,
-	START
-};
-
-void vita_init_joystick()
-{
-	int numJoysticks = SDL_NumJoysticks();
-	debugNetPrintf(DEBUG, "Num Joysticks: %d\n", numJoysticks);
-	if(numJoysticks >= 1)
-	{
-		debugNetPrintf(DEBUG, "Opening Player 1...\n");
-		SDL_Joystick *vita_controls = SDL_JoystickOpen(0);
-	}
-}
-
-int vita_translate_joystick(int joystickButton)
-{
-	const VITA_BUTTONS asVb = (const VITA_BUTTONS)joystickButton;
-
-	debugNetPrintf(DEBUG, "Joystick Button: %d\n", joystickButton);
-	switch(asVb)
-	{
-		case LEFT_SHOULDER:
-			return options::Options.LeftFlipperKey;
-			break;
-		case RIGHT_SHOULDER:
-			return options::Options.RightFlipperKey;
-			break;
-		case CROSS:
-			return options::Options.PlungerKey;
-			break;
-	}
-	return 0;
-}
-
-#endif
-
 uint32_t timeGetTimeAlt()
 {
 	auto now = std::chrono::high_resolution_clock::now();
@@ -127,7 +104,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 #if VITA
 	std::string dataFullPath = BasePath + DatFileName;
 	debugNetInit("192.168.0.45", 18194, DEBUG);
-	debugNetPrintf(INFO, "The data path is '%s'", dataFullPath.c_str());
+	debugNetPrintf(INFO, "The data path is '%s'\n", dataFullPath.c_str());
 
 	vita_init_joystick();
 #endif
@@ -179,6 +156,9 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	ImGuiSDL::Initialize(renderer, 0, 0);
 	ImGui::StyleColorsDark();
 	ImGuiIO& io = ImGui::GetIO();
+#ifdef VITA
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+#endif
 	ImIO = &io;
 	// ImGui_ImplSDL2_Init is private, we are not actually using ImGui OpenGl backend
 	ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
@@ -344,16 +324,22 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 				// Keep track of remainder, limited to one frame time.
 				frameStart = frameEnd - std::min(elapsedMs - TargetFrameTime, TargetFrameTime) / sdlTimerResMs;
 
-				ImGui_ImplSDL2_NewFrame();
-				ImGui::NewFrame();
+				if(vita_imgui_enabled)
+				{
+					ImGui_ImplSDL2_NewFrame();
+					ImGui::NewFrame();
 
-				RenderUi();
+					RenderUi();
+				}
 
 				SDL_RenderClear(renderer);
 				gdrv::BlitScreen();
 
-				ImGui::Render();
-				ImGuiSDL::Render(ImGui::GetDrawData());
+				if(vita_imgui_enabled)
+				{
+					ImGui::Render();
+					ImGuiSDL::Render(ImGui::GetDrawData());
+				}
 
 				SDL_RenderPresent(renderer);
 				frameCounter++;
@@ -416,10 +402,12 @@ void winmain::RenderUi()
 				end_pause();
 				pb::launch_ball();
 			}
+
 			if (ImGui::MenuItem("Pause/ Resume Game", "F3"))
 			{
 				pause();
 			}
+
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("High Scores...", nullptr, false, HighScoresEnabled))
@@ -531,8 +519,20 @@ void winmain::RenderUi()
 			}
 			ImGui::EndMenu();
 		}
+
+		if(ImGui::IsWindowAppearing())
+		{
+			auto defaultMenu = ImGui::GetID("Launch Ball");
+			auto parentMenu = ImGui::GetID("Game");
+			debugNetPrintf(DEBUG, "FOCUSING %u & its child %u\n", parentMenu, defaultMenu);
+			ImGui::OpenPopup(parentMenu);
+			GImGui->NavId = defaultMenu;
+		}
+
 		ImGui::EndMainMenuBar();
 	}
+
+	
 
 	a_dialog();
 	high_score::RenderHighScoreDialog();
@@ -566,6 +566,18 @@ int winmain::event_handler(const SDL_Event* event)
 		{
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
+		case SDL_JOYBUTTONDOWN:
+		case SDL_JOYBUTTONUP:
+			return 1;
+		default: ;
+		}
+	}
+	if(ImIO->NavActive && ImIO->NavVisible)
+	{
+		switch(event -> type)
+		{
+		case SDL_JOYBUTTONDOWN:
+		case SDL_JOYBUTTONUP:
 			return 1;
 		default: ;
 		}
@@ -579,12 +591,23 @@ int winmain::event_handler(const SDL_Event* event)
 		fullscrn::shutdown();
 		return_value = 0;
 		return 0;
+#ifdef VITA
 	case SDL_JOYBUTTONDOWN:
 		pb::keydown(vita_translate_joystick(event->jbutton.button));
 		break;
 	case SDL_JOYBUTTONUP:
-		pb::keyup(vita_translate_joystick(event->jbutton.button));
+		if(((VITA_BUTTONS)event->jbutton.button) == START)
+		{
+			vita_imgui_enabled = !vita_imgui_enabled;
+			/*auto gameMenu = ImGui::GetID("Game");
+			if(gameMenu != 0)
+				ImGui::SetFocusID(gameMenu, ImGui::GetCurrentWindow());
+			else debugNetPrintf(DEBUG, "Unable to focus IMGUI menu with ID 'Game'\n");*/
+		}
+		else
+			pb::keyup(vita_translate_joystick(event->jbutton.button));
 		break;
+#endif
 	case SDL_KEYUP:
 		pb::keyup(event->key.keysym.sym);
 		break;
