@@ -1,3 +1,28 @@
+# About Vita Port
+Ported to PS Vita by Axiom.
+The game compiled without any complaints on PS Vita just by passing the appropriate CMake Flags.
+
+Initial tweaks have been made to get the game feature complete, but for now it's just the barebones.
+
+Controls:
+X - Plunger
+L - Left Bumper
+R - Right Bumper
+Touch Screen - For now, just the IMGUI gui.
+
+I need to increase the size of the IMGUI controls and add support for the full range of Vita input.
+I would also like to bind the main Pinball menus to the Vita Dpad/Cross button.
+
+## Building Vita Port
+Requires VITASDK installed.
+```sh
+git clone https://github.com/suicvne/SpaceCadetPinball_Vita.git
+cd SpaceCadetPinball_Vita/
+mkdir build && cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DSDL2_PATH=$VITASDK/arm-vita-eabi/lib/ -DSDL2_INCLUDE_DIR=$VITASDK/arm-vita-eabi/include/SDL2 ../
+```
+Place resources from your copy of the game into ux0:data/SpaceCadetPinball. The directory will be created the first time you run the game.
+
 # SpaceCadetPinball
 **Summary:** Reverse engineering of `3D Pinball for Windows – Space Cadet`, a game bundled with Windows.
 
