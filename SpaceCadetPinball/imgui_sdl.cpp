@@ -683,6 +683,7 @@ namespace ImGuiSDL
 								if (isWrappedTexture)
 								{
 									SDL_Texture* asSDLTexture = static_cast<SDL_Texture*>(drawCommand->TextureId);
+									const Texture *asImguiTex = static_cast<const Texture*>(drawCommand->TextureId);
 
 									DrawRectangle(bounding, asSDLTexture, Color(v0.col), doHorizontalFlip, doVerticalFlip);
 								}

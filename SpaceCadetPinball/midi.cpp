@@ -5,6 +5,11 @@
 #include "pb.h"
 #include "pinball.h"
 
+#ifdef VITA
+#ifndef NDEBUG
+#include <debugnet.h>
+#endif
+#endif
 
 Mix_Music* midi::currentMidi;
 
@@ -72,7 +77,7 @@ Mix_Music *music_load_midi(const std::string& resourceFileName)
 
 	// Make absolute path to MIDI.
 	std::string init_midi = pinball::make_path_name(pinball::get_rc_string(156, 0));
-	printf("Initializing with '%s'\n", init_midi.c_str());
+	// debugNetPrintf(DEBUG, "Initializing with '%s'\n", init_midi.c_str());
 
 	// Fist attempt to load MIDI.
 	returnVal = Mix_LoadMUS(init_midi.c_str());
@@ -82,7 +87,7 @@ Mix_Music *music_load_midi(const std::string& resourceFileName)
 	{
 		// Try with uppercase path instead.
 		init_midi = pinball::make_path_name(asUpper);
-		printf("Trying to initialize with '%s' instead...\n", init_midi.c_str());
+		// debugNetPrintf(DEBUG, "Trying to initialize with '%s' instead...\n", init_midi.c_str());
 
 		// Try loading again.
 		returnVal = Mix_LoadMUS(init_midi.c_str());
@@ -92,8 +97,8 @@ Mix_Music *music_load_midi(const std::string& resourceFileName)
 	if(returnVal == nullptr)
 	{
 		const char *lastMixErr = Mix_GetError();
-		if(lastMixErr != nullptr) fprintf(stderr, "Unable to load '%s'. Mix_Error: %s\n", init_midi.c_str(), lastMixErr);
-		else fprintf(stderr, "Unable to load '%s'. No error from Mixer.", init_midi.c_str());
+		// if(lastMixErr != nullptr) debugNetPrintf(ERROR, "Unable to load '%s'. Mix_Error: %s\n", init_midi.c_str(), lastMixErr);
+		// else debugNetPrintf(ERROR, "Unable to load '%s'. No error from Mixer.", init_midi.c_str());
 	}
 
 	return returnVal;

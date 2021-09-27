@@ -13,7 +13,7 @@
 #ifdef VITA
 #ifndef NDEBUG
 #include <debugnet.h>
-#define DEBUG_IP "192.168.0.18"
+#define DEBUG_IP "192.168.0.45"
 #define DEBUG_PORT 18194
 #endif
 #include "vita_input.h"
@@ -34,13 +34,22 @@ static inline int vita_translate_joystick(int joystickButton)
 	switch(asVb)
 	{
 		case LEFT_SHOULDER:
-		    return options::Options.LeftFlipperKey;
+		    return options::Options.LeftFlipperKeyDft;
 			break;
 		case RIGHT_SHOULDER:
-			return options::Options.RightFlipperKey;
+			return options::Options.RightFlipperKeyDft;
 			break;
 		case CROSS:
-			return options::Options.PlungerKey;
+			return options::Options.PlungerKeyDft;
+			break;
+		case D_DOWN:
+			return options::Options.BottomTableBumpKeyDft;
+			break;
+		case D_LEFT:
+			return options::Options.LeftTableBumpKeyDft;
+			break;
+		case D_RIGHT:
+			return options::Options.RightTableBumpKeyDft;
 			break;
 	}
 	return 0;
@@ -54,21 +63,63 @@ static inline int vita_translate_joystick(int joystickButton)
 
 static ImFont *custom_font = nullptr;
 
+/**
+ * Win95 style for ImGui.
+ */
 static inline void vita_setup_custom_imgui_style()
 {
 	ImGuiStyle& curStyle = ImGui::GetStyle();
+
+	curStyle.MouseCursorScale = 0.f;
+	curStyle.AntiAliasedLines = false;
+	curStyle.AntiAliasedLinesUseTex = false;
+	curStyle.AntiAliasedFill = false;
+
+	curStyle.Colors[ImGuiCol_Border] = ImColor(0,0,0,255);
+	curStyle.Colors[ImGuiCol_MenuBarBg] = ImColor(192,192,192,255);
+	
+	curStyle.Colors[ImGuiCol_FrameBg] = ImColor(255, 0, 0, 255);
+
+	curStyle.Colors[ImGuiCol_Button] = curStyle.Colors[ImGuiCol_MenuBarBg];
+	curStyle.Colors[ImGuiCol_ButtonHovered] = ImColor(150,150,150,255);
+	curStyle.Colors[ImGuiCol_ButtonActive] = ImColor(120, 120, 120, 255);
+
+	curStyle.Colors[ImGuiCol_PopupBg] = curStyle.Colors[ImGuiCol_MenuBarBg];
+	curStyle.Colors[ImGuiCol_Header] = curStyle.Colors[ImGuiCol_MenuBarBg];
+	curStyle.Colors[ImGuiCol_HeaderHovered] = ImColor(34,34,255,255);
+	curStyle.Colors[ImGuiCol_HeaderActive] = ImColor(105,105,105,255);
+
+	curStyle.Colors[ImGuiCol_TitleBg] = ImColor(128, 128, 128, 255);
+	curStyle.Colors[ImGuiCol_TitleBgActive] = ImColor(34,34,255,255);
+	curStyle.Colors[ImGuiCol_TitleBgCollapsed] = ImColor(0, 128, 0, 255);
+
+	curStyle.Colors[ImGuiCol_Text] = ImColor(0, 0, 0, 255);
+
+
+	// curStyle.PopupRounding = 8.0f;
+	curStyle.PopupBorderSize = 2.0f;
+	curStyle.ChildBorderSize = 2.0f;
+	curStyle.WindowBorderSize = 2.0f;
+	curStyle.FrameBorderSize = 2.0f;
+	curStyle.DisplayWindowPadding = ImVec2(4.0f, 4.0f);
+	// curStyle.FrameRounding = 8.f;
+	
 	curStyle.ScaleAllSizes(2.f);
 
-	// const std::string archivo_path = std::string(SDL_GetBasePath()) + std::string("ArchivoNarrow-Regular.ttf");
-	const std::string archivo_path = std::string(SDL_GetBasePath()) + std::string("Ruda-Bold.ttf");
-
+#ifndef VITA
+	const std::string archivo_path = std::string(SDL_GetBasePath()) + std::string("W95FA.ttf");
+#else
+	const std::string archivo_path = std::string("app0:font.ttf");
+#endif
 	// ImFontConfig config;
 	auto glyphRanges = winmain::ImIO->Fonts->GetGlyphRangesDefault();
 	
-	custom_font = winmain::ImIO->Fonts->AddFontFromFileTTF(archivo_path.c_str(), 12, nullptr, glyphRanges);
+	custom_font = winmain::ImIO->Fonts->AddFontFromFileTTF(archivo_path.c_str(), 24, nullptr, glyphRanges);
 	winmain::ImIO->Fonts->Build();
 	ImGuiSDL::CreateFontsTexture();
-	winmain::ImIO->FontGlobalScale = 2.f;
+// #ifdef VITA
+	winmain::ImIO->FontGlobalScale = 1.f;
+// #endif
 }
 
 
@@ -124,6 +175,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	}
 
 #ifdef VITA
+	SDL_setenv("VITA_DISABLE_TOUCH_BACK", "TRUE", 1);
 	BasePath = SDL_GetPrefPath(nullptr, "SpaceCadetPinball");
 #else
 	BasePath = SDL_GetBasePath();
@@ -199,7 +251,8 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	
 
 	auto prefPath = SDL_GetPrefPath(nullptr, "SpaceCadetPinball");
-	auto iniPath = std::string(prefPath) + "imgui_pb.ini";
+	auto iniPath = BasePath + std::string("imgui_pb.ini");
+	std::cout << "Ini Path for imgui: " << iniPath << std::endl;
 	io.IniFilename = iniPath.c_str();
 	SDL_free(prefPath);
 
@@ -437,7 +490,8 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 
 void winmain::RenderUi()
 {
-	ImGui::PushFont(custom_font);
+	if(custom_font != nullptr)
+		ImGui::PushFont(custom_font);
 
 	// No demo window in release to save space
 #ifndef NDEBUG
@@ -576,9 +630,9 @@ void winmain::RenderUi()
 			ImGui::EndMenu();
 		}
 
-		if(ImGui::IsWindowAppearing() 
+		if(ImGui::IsWindowAppearing()
 #ifdef VITA
-			|| needs_focus
+			|| ImGui::GetFocusID() == 0
 #endif
 			)
 		{
@@ -601,7 +655,8 @@ void winmain::RenderUi()
 	a_dialog();
 	high_score::RenderHighScoreDialog();
 
-	ImGui::PopFont();
+	if(custom_font != nullptr)
+		ImGui::PopFont();
 }
 
 int winmain::event_handler(const SDL_Event* event)
@@ -613,11 +668,18 @@ int winmain::event_handler(const SDL_Event* event)
 		if (mouse_down)
 		{
 			mouse_down = 0;
+#ifndef VITA
 			SDL_ShowCursor(SDL_ENABLE);
 			SDL_SetWindowGrab(MainWindow, SDL_FALSE);
+#endif
 		}
 		switch (event->type)
 		{
+		case SDL_FINGERMOTION:
+#ifdef VITA
+			debugNetPrintf(DEBUG, "HEY!!!! WE GOT A TOUCH EVENT!!!! pos: %.2f, %.2f; delta: %.2f, %.2f\n", event->tfinger.x, event->tfinger.y, event->tfinger.dx, event->tfinger.dy);
+#endif
+        break;
 		case SDL_MOUSEMOTION:
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
@@ -668,13 +730,7 @@ int winmain::event_handler(const SDL_Event* event)
 		break;
 	case SDL_JOYBUTTONUP:
 		if(((VITA_BUTTONS)event->jbutton.button) == START)
-		{
 			vita_set_imgui_enabled(!vita_imgui_enabled);
-			/*auto gameMenu = ImGui::GetID("Game");
-			if(gameMenu != 0)
-				ImGui::SetFocusID(gameMenu, ImGui::GetCurrentWindow());
-			else debugNetPrintf(DEBUG, "Unable to focus IMGUI menu with ID 'Game'\n");*/
-		}
 		else
 			pb::keyup(vita_translate_joystick(event->jbutton.button));
 		break;
@@ -883,7 +939,7 @@ void winmain::a_dialog()
 	if (ImGui::BeginPopupModal("About", &unused_open, ImGuiWindowFlags_AlwaysAutoResize))
 	{
 		ImGui::TextUnformatted("3D Pinball for Windows - Space Cadet");
-		ImGui::TextUnformatted("Decompiled -> Ported to SDL");
+		ImGui::TextUnformatted("Decompiled -> Ported to SDL by k4zmu2a");
 #ifdef VITA
 		ImGui::Separator();
 		ImGui::TextUnformatted("Ported to Vita by Axiom (axiom@ignoresolutions.xyz)");
