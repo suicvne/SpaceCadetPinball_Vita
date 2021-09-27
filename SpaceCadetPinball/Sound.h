@@ -4,7 +4,7 @@
 class Sound
 {
 public:
-	static int Init(int voices);
+	static int Init(int voices, int curMidiBackend);
 	static void Enable(int channelFrom, int channelTo, int enableFlag);
 	static void Activate();
 	static void Deactivate();

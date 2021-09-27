@@ -77,6 +77,11 @@ Mix_Music *music_load_midi(const std::string& resourceFileName)
 
 	// Make absolute path to MIDI.
 	std::string init_midi = pinball::make_path_name(pinball::get_rc_string(156, 0));
+#ifdef VITA
+	const int curMidiDevice = Mix_GetMidiPlayer();
+	const int nextMidiDevice = Mix_GetNextMidiPlayer();
+	debugNetPrintf(DEBUG, "Cur MIDI Device: %d; Next MIDI Device: %d\n", curMidiDevice, nextMidiDevice);
+#endif
 	// debugNetPrintf(DEBUG, "Initializing with '%s'\n", init_midi.c_str());
 
 	// Fist attempt to load MIDI.

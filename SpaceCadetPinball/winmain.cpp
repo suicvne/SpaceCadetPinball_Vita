@@ -62,6 +62,15 @@ static inline int vita_translate_joystick(int joystickButton)
 #endif
 
 static ImFont *custom_font = nullptr;
+static std::map<Mix_MIDI_Device, std::string> _MixerMidiDevices = 
+{
+	{MIDI_ADLMIDI, std::string("ADLMIDI")},
+	{MIDI_Native, std::string("Native")},
+	{MIDI_Timidity, std::string("Timidity")},
+	{MIDI_OPNMIDI, std::string("OPNMIDI")},
+	{MIDI_ANY, ""},
+	{MIDI_KnownDevices, ""}
+};
 
 /**
  * Win95 style for ImGui.
@@ -262,7 +271,8 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 
 		options::init();
 		auto voiceCount = options::get_int("Voices", 8);
-		if (Sound::Init(voiceCount))
+		auto defaultMidiPlayer = options::Options.CurMidiBackend;
+		if (Sound::Init(voiceCount, defaultMidiPlayer))
 			options::Options.Sounds = 0;
 		Sound::Activate();
 
@@ -569,6 +579,31 @@ void winmain::RenderUi()
 				}
 				ImGui::EndMenu();
 			}
+			ImGui::Separator();
+
+			if(ImGui::BeginMenu("MIDI Backend"))
+			{
+				int count = 0;
+				for(auto kvp : _MixerMidiDevices)
+				{
+					if(kvp.second.length() > 0)
+					{
+						if(ImGui::MenuItem(kvp.second.c_str(), nullptr, options::Options.CurMidiBackend == (int)kvp.first, true))
+						{
+							printf("Changing MIDI Backend (%d -> %d)\n", options::Options.CurMidiBackend, (int)kvp.first);
+							options::Options.CurMidiBackend = (int)kvp.first;
+							options::set_int("CurMidiBackend", (int)kvp.first);
+							Mix_SetMidiPlayer(options::Options.CurMidiBackend);
+							midi::music_stop();
+							midi::play_pb_theme(0);
+						}
+						count++;
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Sound", nullptr, options::Options.Sounds))

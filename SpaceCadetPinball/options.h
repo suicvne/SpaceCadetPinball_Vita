@@ -21,6 +21,7 @@ struct optionsStruct
 	int BottomTableBumpKeyDft;
 	int Resolution;
 	bool UniformScaling;
+	int CurMidiBackend;
 };
 
 

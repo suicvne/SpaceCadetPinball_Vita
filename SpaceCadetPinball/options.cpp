@@ -102,6 +102,7 @@ void options::init()
 	Options.RightTableBumpKey = get_int("Right Table Bump key", Options.RightTableBumpKey);
 	Options.BottomTableBumpKey = get_int("Bottom Table Bump key", Options.BottomTableBumpKey);
 	Options.UniformScaling = get_int("Uniform scaling", Options.UniformScaling);
+	Options.CurMidiBackend = get_int("CurMidiBackend", MIDI_ADLMIDI /*MIDI_ADLMIDI*/);
 	Sound::Enable(0, 7, Options.Sounds);
 
 	update_resolution_menu();

@@ -30,7 +30,8 @@
 
 #define SDL_MAIN_HANDLED
 #include "SDL.h"
-#include <SDL_mixer.h>
+// #include <SDL_mixer.h>
+#include <SDL2/SDL_mixer_ext.h>
 
 //https://github.com/ocornut/imgui 7b913db1ce9dd2fd98e5790aa59974dd4496be3b
 #include "imgui.h"

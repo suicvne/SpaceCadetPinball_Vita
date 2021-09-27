@@ -9,7 +9,7 @@ unsigned int Sound::enabled_flag = -1;
 const int Sound::initFlags = MIX_INIT_MID;
 
 
-int Sound::Init(int voices)
+int Sound::Init(int voices, int curMidiPlayer)
 {
 	int channelCount = voices;
 	if (voices > 8)
@@ -26,6 +26,7 @@ int Sound::Init(int voices)
 	}
 
 	int mixerReturnVal = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
+	Mix_SetMidiPlayer(curMidiPlayer);
 	return mixerReturnVal;
 }
 
