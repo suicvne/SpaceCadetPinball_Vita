@@ -52,7 +52,7 @@ static inline int vita_translate_joystick(int joystickButton)
 }
 #endif
 
-
+static ImFont *custom_font = nullptr;
 
 static inline void vita_setup_custom_imgui_style()
 {
@@ -63,10 +63,11 @@ static inline void vita_setup_custom_imgui_style()
 	const std::string archivo_path = std::string(SDL_GetBasePath()) + std::string("Ruda-Bold.ttf");
 
 	// ImFontConfig config;
-	// auto glyphRanges = winmain::ImIO->Fonts->GetGlyphRangesDefault();
+	auto glyphRanges = winmain::ImIO->Fonts->GetGlyphRangesDefault();
 	
-	// vita_custom_font = winmain::ImIO->Fonts->AddFontFromFileTTF(archivo_path.c_str(), 22, &config, glyphRanges);
-	// winmain::ImIO->Fonts->Build();
+	custom_font = winmain::ImIO->Fonts->AddFontFromFileTTF(archivo_path.c_str(), 12, nullptr, glyphRanges);
+	winmain::ImIO->Fonts->Build();
+	ImGuiSDL::CreateFontsTexture();
 	winmain::ImIO->FontGlobalScale = 2.f;
 }
 
@@ -405,6 +406,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	pb::uninit();
 	Sound::Close();
 	gdrv::uninit();
+	ImGuiSDL::DestroyFontsTexture();
 	ImGuiSDL::Deinitialize();
 	ImGui_ImplSDL2_Shutdown();
 	SDL_DestroyRenderer(renderer);
@@ -435,6 +437,8 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 
 void winmain::RenderUi()
 {
+	ImGui::PushFont(custom_font);
+
 	// No demo window in release to save space
 #ifndef NDEBUG
 	if (ShowImGuiDemo)
@@ -596,6 +600,8 @@ void winmain::RenderUi()
 
 	a_dialog();
 	high_score::RenderHighScoreDialog();
+
+	ImGui::PopFont();
 }
 
 int winmain::event_handler(const SDL_Event* event)
