@@ -22,6 +22,9 @@ endif()
 find_package(SDL2 REQUIRED)
 FIND_PACKAGE(SDL2_mixer REQUIRED)
 
+# find_library(SDL2_MIXER_LIBRARY SDL2_mixer_ext)
+
+
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2_MIXER_INCLUDE_DIR})
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 foreach(dir ${dirs})
