@@ -5,6 +5,7 @@
 #include "pb.h"
 #include "pinball.h"
 
+
 Mix_Music* midi::currentMidi;
 
 constexpr uint32_t FOURCC(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
@@ -52,6 +53,52 @@ int midi::music_stop()
 	return Mix_HaltMusic();
 }
 
+/**
+ * Attempts to load a MIDI file given its file name.
+ * This will go through two attempts.
+ * 
+ * If the first attempt fails, it will try to load the 
+ * given resourceFileName as an all uppercase file name (DOS/95 style).
+ * 
+ * If that fails, NULL is return.
+ * Otherwise, if one of the tries passes, a Mix_Music pointer is returned.
+ */
+Mix_Music *music_load_midi(const std::string& resourceFileName)
+{
+	Mix_Music *returnVal = nullptr;
+	// Please copy
+	std::string asUpper = std::string(resourceFileName);
+	for(auto &c : asUpper) c = toupper(c);
+
+	// Make absolute path to MIDI.
+	std::string init_midi = pinball::make_path_name(pinball::get_rc_string(156, 0));
+	printf("Initializing with '%s'\n", init_midi.c_str());
+
+	// Fist attempt to load MIDI.
+	returnVal = Mix_LoadMUS(init_midi.c_str());
+
+	// First attempt failed, let's begin a second attempt.
+	if(returnVal == nullptr)
+	{
+		// Try with uppercase path instead.
+		init_midi = pinball::make_path_name(asUpper);
+		printf("Trying to initialize with '%s' instead...\n", init_midi.c_str());
+
+		// Try loading again.
+		returnVal = Mix_LoadMUS(init_midi.c_str());
+	}
+
+	// OK, it's either not there or refusing to play.
+	if(returnVal == nullptr)
+	{
+		const char *lastMixErr = Mix_GetError();
+		if(lastMixErr != nullptr) fprintf(stderr, "Unable to load '%s'. Mix_Error: %s\n", init_midi.c_str(), lastMixErr);
+		else fprintf(stderr, "Unable to load '%s'. No error from Mixer.", init_midi.c_str());
+	}
+
+	return returnVal;
+}
+
 int midi::music_init()
 {
 	if (pb::FullTiltMode)
@@ -59,7 +106,10 @@ int midi::music_init()
 		return music_init_ft();
 	}
 
-	currentMidi = Mix_LoadMUS(pinball::get_rc_string(156, 0));
+	// Store uppercase variant in case the file is not named properly.
+	std::string init_midi_rc = pinball::get_rc_string(156, 0);
+	
+	currentMidi = music_load_midi(init_midi_rc);
 	return currentMidi != nullptr;
 }
 

@@ -6,6 +6,8 @@
 
 int Sound::num_channels;
 unsigned int Sound::enabled_flag = -1;
+const int Sound::initFlags = MIX_INIT_MID;
+
 
 int Sound::Init(int voices)
 {
@@ -13,8 +15,18 @@ int Sound::Init(int voices)
 	if (voices > 8)
 		channelCount = 8;
 	num_channels = channelCount;
+	
 
-	return Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
+
+	int mixerInitReturnVal = Mix_Init(initFlags);
+	if(mixerInitReturnVal != initFlags)
+	{
+		fprintf(stderr, "ERROR COULD NOT INIT MIDI SUPPORT WITH SDL2_MIXER_EXT\n");
+		return 0;
+	}
+
+	int mixerReturnVal = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
+	return mixerReturnVal;
 }
 
 void Sound::Enable(int channelFrom, int channelTo, int enableFlag)

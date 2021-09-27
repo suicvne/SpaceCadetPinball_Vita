@@ -15,4 +15,5 @@ public:
 private:
 	static int num_channels;
 	static unsigned int enabled_flag;
+	static const int initFlags;
 };
