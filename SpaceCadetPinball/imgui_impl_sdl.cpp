@@ -134,11 +134,7 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
         }
     case SDL_TEXTINPUT:
         {
-#ifdef VITA
-            io.ClearInputCharacters();
-#endif
             io.AddInputCharactersUTF8(event->text.text);
-
             return true;
         }
     case SDL_KEYDOWN:
@@ -282,10 +278,16 @@ bool ImGui_ImplSDL2_InitForMetal(SDL_Window* window)
     return ImGui_ImplSDL2_Init(window);
 }
 
+bool ImGui_ImplSDL2_InitForSDLRenderer(SDL_Window* window)
+{
+    return ImGui_ImplSDL2_Init(window);
+}
+
 void ImGui_ImplSDL2_Shutdown()
 {
-    ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplSDL2_Data* bd = ImGui_ImplSDL2_GetBackendData();
+    IM_ASSERT(bd != NULL && "No platform backend to shutdown, or already shutdown?");
+    ImGuiIO& io = ImGui::GetIO();
 
     if (bd->ClipboardTextData)
         SDL_free(bd->ClipboardTextData);

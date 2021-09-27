@@ -149,6 +149,7 @@ namespace
 	struct Device
 	{
 		SDL_Renderer* Renderer;
+		SDL_Texture* FontTexture;
 
 		struct ClipRect
 		{
@@ -220,7 +221,8 @@ namespace
 
 		~Texture()
 		{
-			SDL_FreeSurface(Surface);
+			if(Surface->refcount != -1)
+				SDL_FreeSurface(Surface);
 			SDL_DestroyTexture(Source);
 		}
 
@@ -557,6 +559,46 @@ namespace ImGuiSDL
 		delete CurrentDevice;
 	}
 
+	// Called by Init/NewFrame/Shutdown
+	bool CreateFontsTexture()
+	{
+		ImGuiIO& io = ImGui::GetIO();
+
+		// Build texture atlas
+		unsigned char *pixels;
+		int w, h;
+		io.Fonts->GetTexDataAsRGBA32(&pixels, &w, &h);
+
+		// Upload font texture.
+		CurrentDevice->FontTexture = SDL_CreateTexture(CurrentDevice->Renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
+		if(CurrentDevice->FontTexture == NULL)
+		{
+			SDL_Log("ERROR CREATING FONT TEXTURE");
+			return false;
+		}
+
+		SDL_UpdateTexture(CurrentDevice->FontTexture, NULL, pixels, 4 * w);
+		SDL_SetTextureBlendMode(CurrentDevice->FontTexture, SDL_BLENDMODE_BLEND);
+
+		// Store identifier.
+		io.Fonts->SetTexID((ImTextureID)(intptr_t)CurrentDevice->FontTexture);
+		return true;
+	}
+
+	bool DestroyFontsTexture()
+	{
+		ImGuiIO &io = ImGui::GetIO();
+		if(CurrentDevice->FontTexture)
+		{
+			io.Fonts->SetTexID(0);
+			SDL_DestroyTexture(CurrentDevice->FontTexture);
+			CurrentDevice->FontTexture = NULL;
+			return true;
+		}
+
+		return false;
+	}
+
 	void Render(ImDrawData* drawData)
 	{
 		SDL_BlendMode blendMode;
@@ -640,7 +682,9 @@ namespace ImGuiSDL
 
 								if (isWrappedTexture)
 								{
-									DrawRectangle(bounding, static_cast<const Texture*>(drawCommand->TextureId), Color(v0.col), doHorizontalFlip, doVerticalFlip);
+									SDL_Texture* asSDLTexture = static_cast<SDL_Texture*>(drawCommand->TextureId);
+
+									DrawRectangle(bounding, asSDLTexture, Color(v0.col), doHorizontalFlip, doVerticalFlip);
 								}
 								else
 								{
