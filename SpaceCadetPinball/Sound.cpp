@@ -9,7 +9,7 @@ unsigned int Sound::enabled_flag = -1;
 const int Sound::initFlags = MIX_INIT_MID;
 
 
-int Sound::Init(int voices, int curMidiPlayer)
+int Sound::Init(int voices, int curMidiPlayer, int adlEmu, int opnEmu)
 {
 	int channelCount = voices;
 	if (voices > 8)
@@ -27,6 +27,16 @@ int Sound::Init(int voices, int curMidiPlayer)
 
 	int mixerReturnVal = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
 	Mix_SetMidiPlayer(curMidiPlayer);
+	
+	if(curMidiPlayer == MIDI_ADLMIDI)
+	{
+		Mix_ADLMIDI_setEmulator(adlEmu);
+	}
+	else if(curMidiPlayer == MIDI_OPNMIDI)
+	{
+		Mix_OPNMIDI_setEmulator(opnEmu);
+	}
+
 	return mixerReturnVal;
 }
 

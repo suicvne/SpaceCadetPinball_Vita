@@ -4,7 +4,7 @@
 class Sound
 {
 public:
-	static int Init(int voices, int curMidiBackend);
+	static int Init(int voices, int curMidiBackend, int adlEmu = ADLMIDI_OPL3_EMU_DEFAULT, int opnEmu = OPNMIDI_OPN2_EMU_DEFAULT);
 	static void Enable(int channelFrom, int channelTo, int enableFlag);
 	static void Activate();
 	static void Deactivate();
