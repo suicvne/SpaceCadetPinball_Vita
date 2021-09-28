@@ -9,14 +9,12 @@
 #include "pb.h"
 #include "Sound.h"
 #include "resource.h"
-
+#define VITA_INPUT_COOLDOWN 80
+static int vita_input_cooldown_timer = 0;
 #ifdef VITA
-#ifndef NDEBUG
-#include <debugnet.h>
-#define DEBUG_IP "192.168.0.45"
-#define DEBUG_PORT 18194
-#endif
-#include "vita_input.h"
+int _newlib_heap_size_user = 80 * 1024 * 1024;
+
+
 
 static bool vita_imgui_enabled = false;
 static bool needs_focus = false;
@@ -91,10 +89,12 @@ static inline void vita_setup_custom_imgui_style()
 {
 	ImGuiStyle& curStyle = ImGui::GetStyle();
 
+#if 0
 	curStyle.MouseCursorScale = 0.f;
 	curStyle.AntiAliasedLines = false;
 	curStyle.AntiAliasedLinesUseTex = false;
 	curStyle.AntiAliasedFill = false;
+#endif
 
 	curStyle.Colors[ImGuiCol_Separator] = ImColor(0, 0, 0, 255);
 	curStyle.Colors[ImGuiCol_SeparatorActive] = ImColor(0, 0, 0, 255);
@@ -141,12 +141,15 @@ static inline void vita_setup_custom_imgui_style()
 #else
 	const std::string archivo_path = std::string("app0:font.ttf");
 #endif
-	// ImFontConfig config;
+
+	ImFontConfig config;
 	auto glyphRanges = winmain::ImIO->Fonts->GetGlyphRangesDefault();
-	
-	custom_font = winmain::ImIO->Fonts->AddFontFromFileTTF(archivo_path.c_str(), 24, nullptr, glyphRanges);
+
+	custom_font = winmain::ImIO->Fonts->AddFontFromFileTTF(archivo_path.c_str(), 24, &config, glyphRanges);
+
 	winmain::ImIO->Fonts->Build();
 	ImGuiSDL::CreateFontsTexture();
+
 // #ifdef VITA
 	winmain::ImIO->FontGlobalScale = 1.f;
 // #endif
@@ -293,7 +296,10 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		options::init();
 		auto voiceCount = options::get_int("Voices", 8);
 		auto defaultMidiPlayer = options::Options.CurMidiBackend;
-		if (Sound::Init(voiceCount, defaultMidiPlayer))
+		auto adlEmu = options::Options.ADLEmu;
+		auto adlBank = options::Options.ADLBank;
+		// auto opnEmu = options::Options
+		if (Sound::Init(voiceCount, defaultMidiPlayer, adlEmu, adlBank))
 			options::Options.Sounds = 0;
 		Sound::Activate();
 
@@ -605,6 +611,7 @@ void winmain::RenderUi()
 
 			if(ImGui::BeginMenu("MIDI Backend"))
 			{
+
 				int count = 0;
 				for(auto kvp : _MixerMidiDevices)
 				{
@@ -664,7 +671,6 @@ void winmain::RenderUi()
 							midi::music_reboot();
 						}
 					}
-					
 
 					ImGui::EndMenu();
 				}
@@ -732,7 +738,7 @@ void winmain::RenderUi()
 		}
 
 		if(ImGui::IsWindowAppearing()
-#ifdef VITA
+#if 0
 			|| ImGui::GetFocusID() == 0
 #endif
 			)
@@ -763,239 +769,248 @@ void winmain::RenderUi()
 int winmain::event_handler(const SDL_Event* event)
 {
 	ImGui_ImplSDL2_ProcessEvent(event);
-
-	if (ImIO->WantCaptureMouse)
+	if (event != nullptr)
 	{
-		if (mouse_down)
+		if (ImIO->WantCaptureMouse)
 		{
-			mouse_down = 0;
-#ifndef VITA
-			SDL_ShowCursor(SDL_ENABLE);
-			SDL_SetWindowGrab(MainWindow, SDL_FALSE);
-#endif
-		}
-		switch (event->type)
-		{
-		case SDL_FINGERMOTION:
-#ifdef VITA
-			debugNetPrintf(DEBUG, "HEY!!!! WE GOT A TOUCH EVENT!!!! pos: %.2f, %.2f; delta: %.2f, %.2f\n", event->tfinger.x, event->tfinger.y, event->tfinger.dx, event->tfinger.dy);
-#endif
-        break;
-		case SDL_MOUSEMOTION:
-		case SDL_MOUSEBUTTONDOWN:
-		case SDL_MOUSEBUTTONUP:
-		case SDL_MOUSEWHEEL:
-			return 1;
-		default: ;
-		}
-	}
-	if (ImIO->WantCaptureKeyboard)
-	{
-		switch (event->type)
-		{
-	#ifdef VITA
-		case SDL_TEXTEDITING:
-		case SDL_TEXTINPUT:
-			high_score::vita_done_input();
-	#endif
-		case SDL_KEYDOWN:
-		case SDL_KEYUP:
-		case SDL_JOYBUTTONDOWN:
-		case SDL_JOYBUTTONUP:
-			return 1;
-		default: ;
-		}
-	}
-	if(ImIO->NavActive && ImIO->NavVisible)
-	{
-		switch(event -> type)
-		{
-		case SDL_JOYBUTTONDOWN:
-		case SDL_JOYBUTTONUP:
-			return 1;
-		default: ;
-		}
-	}
-
-	switch (event->type)
-	{
-	case SDL_QUIT:
-		end_pause();
-		bQuit = 1;
-		fullscrn::shutdown();
-		return_value = 0;
-		return 0;
-#ifdef VITA
-	case SDL_JOYBUTTONDOWN:
-		pb::keydown(vita_translate_joystick(event->jbutton.button));
-		break;
-	case SDL_JOYBUTTONUP:
-		if(((VITA_BUTTONS)event->jbutton.button) == START)
-			vita_set_imgui_enabled(!vita_imgui_enabled);
-		else
-			pb::keyup(vita_translate_joystick(event->jbutton.button));
-		break;
-#endif
-	case SDL_KEYUP:
-		pb::keyup(event->key.keysym.sym);
-		break;
-	case SDL_KEYDOWN:
-		if (!event->key.repeat)
-			pb::keydown(event->key.keysym.sym);
-		switch (event->key.keysym.sym)
-		{
-		case SDLK_ESCAPE:
-			if (options::Options.FullScreen)
-				options::toggle(Menu1_Full_Screen);
-			SDL_MinimizeWindow(MainWindow);
-			break;
-		case SDLK_F1:
-			help_introduction();
-			break;
-		case SDLK_F2:
-			new_game();
-			break;
-		case SDLK_F3:
-			pause();
-			break;
-		case SDLK_F4:
-			options::toggle(Menu1_Full_Screen);
-			break;
-		case SDLK_F5:
-			options::toggle(Menu1_Sounds);
-			break;
-		case SDLK_F6:
-			options::toggle(Menu1_Music);
-			break;
-		case SDLK_F8:
-			if (!single_step)
-				pause();
-			options::keyboard();
-			break;
-		default:
-			break;
-		}
-
-		if (!pb::cheat_mode)
-			break;
-
-		switch (event->key.keysym.sym)
-		{
-		case SDLK_h:
-			DispGRhistory = 1;
-			break;
-		case SDLK_y:
-			SDL_SetWindowTitle(MainWindow, "Pinball");
-			DispFrameRate = DispFrameRate == 0;
-			break;
-		case SDLK_F1:
-			pb::frame(10);
-			break;
-		case SDLK_F10:
-			single_step = single_step == 0;
-			if (single_step == 0)
-				no_time_loss = 1;
-			break;
-		default:
-			break;
-		}
-		break;
-#ifndef VITA
-	case SDL_MOUSEBUTTONDOWN:
-		switch (event->button.button)
-		{
-		case SDL_BUTTON_LEFT:
-			if (pb::cheat_mode)
-			{
-				mouse_down = 1;
-				last_mouse_x = event->button.x;
-				last_mouse_y = event->button.y;
-				SDL_ShowCursor(SDL_DISABLE);
-				SDL_SetWindowGrab(MainWindow, SDL_TRUE);
-			}
-			else
-				pb::keydown(options::Options.LeftFlipperKey);
-			break;
-		case SDL_BUTTON_RIGHT:
-			if (!pb::cheat_mode)
-				pb::keydown(options::Options.RightFlipperKey);
-			break;
-		case SDL_BUTTON_MIDDLE:
-			pb::keydown(options::Options.PlungerKey);
-			break;
-		default:
-			break;
-		}
-		break;
-	case SDL_MOUSEBUTTONUP:
-		switch (event->button.button)
-		{
-		case SDL_BUTTON_LEFT:
 			if (mouse_down)
 			{
 				mouse_down = 0;
+#ifndef VITA
 				SDL_ShowCursor(SDL_ENABLE);
 				SDL_SetWindowGrab(MainWindow, SDL_FALSE);
+#endif
 			}
-			if (!pb::cheat_mode)
-				pb::keyup(options::Options.LeftFlipperKey);
+
+			switch (event->type)
+			{
+			case SDL_FINGERMOTION:
+			case SDL_MOUSEMOTION:
+				break;
+			case SDL_MOUSEBUTTONDOWN:
+			case SDL_MOUSEBUTTONUP:
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+#ifdef VITA
+				if (ImGui_ImplSDL2_GetInputTimeout() == 0)
+					ImGui_ImplSDL2_SetInputTimeout(IMGUI_IMPLSDL2_DEFAULT_COOLDOWN);
+				else
+					printf("Timer already set please wait...\n");
+#endif
+				break;
+			case SDL_MOUSEWHEEL:
+				return 1;
+			default:;
+			}
+		}
+		if (ImIO->WantCaptureKeyboard)
+		{
+			switch (event->type)
+			{
+#ifdef VITA
+			case SDL_TEXTEDITING:
+			case SDL_TEXTINPUT:
+				high_score::vita_done_input();
+#endif
+			case SDL_KEYDOWN:
+			case SDL_KEYUP:
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+				return 1;
+			default:;
+			}
+		}
+		if (ImIO->NavActive && ImIO->NavVisible)
+		{
+			switch (event->type)
+			{
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+				return 1;
+			default:;
+			}
+		}
+
+		switch (event->type)
+		{
+		case SDL_QUIT:
+			end_pause();
+			bQuit = 1;
+			fullscrn::shutdown();
+			return_value = 0;
+			return 0;
+#ifdef VITA
+		case SDL_JOYBUTTONDOWN:
+			if (vita_imgui_enabled == 0)
+				pb::keydown(vita_translate_joystick(event->jbutton.button));
 			break;
-		case SDL_BUTTON_RIGHT:
-			if (!pb::cheat_mode)
-				pb::keyup(options::Options.RightFlipperKey);
+		case SDL_JOYBUTTONUP:
+			if (((VITA_BUTTONS)event->jbutton.button) == START)
+				vita_set_imgui_enabled(!vita_imgui_enabled);
+			else if (vita_imgui_enabled == 0)
+				pb::keyup(vita_translate_joystick(event->jbutton.button));
 			break;
-		case SDL_BUTTON_MIDDLE:
-			pb::keyup(options::Options.PlungerKey);
+#endif
+		case SDL_KEYUP:
+			pb::keyup(event->key.keysym.sym);
+			break;
+		case SDL_KEYDOWN:
+			if (!event->key.repeat)
+				pb::keydown(event->key.keysym.sym);
+			switch (event->key.keysym.sym)
+			{
+			case SDLK_ESCAPE:
+				if (options::Options.FullScreen)
+					options::toggle(Menu1_Full_Screen);
+				SDL_MinimizeWindow(MainWindow);
+				break;
+			case SDLK_F1:
+				help_introduction();
+				break;
+			case SDLK_F2:
+				new_game();
+				break;
+			case SDLK_F3:
+				pause();
+				break;
+			case SDLK_F4:
+				options::toggle(Menu1_Full_Screen);
+				break;
+			case SDLK_F5:
+				options::toggle(Menu1_Sounds);
+				break;
+			case SDLK_F6:
+				options::toggle(Menu1_Music);
+				break;
+			case SDLK_F8:
+				if (!single_step)
+					pause();
+				options::keyboard();
+				break;
+			default:
+				break;
+			}
+
+			if (!pb::cheat_mode)
+				break;
+
+			switch (event->key.keysym.sym)
+			{
+			case SDLK_h:
+				DispGRhistory = 1;
+				break;
+			case SDLK_y:
+				SDL_SetWindowTitle(MainWindow, "Pinball");
+				DispFrameRate = DispFrameRate == 0;
+				break;
+			case SDLK_F1:
+				pb::frame(10);
+				break;
+			case SDLK_F10:
+				single_step = single_step == 0;
+				if (single_step == 0)
+					no_time_loss = 1;
+				break;
+			default:
+				break;
+			}
+			break;
+#ifndef VITA
+		case SDL_MOUSEBUTTONDOWN:
+			switch (event->button.button)
+			{
+			case SDL_BUTTON_LEFT:
+				if (pb::cheat_mode)
+				{
+					mouse_down = 1;
+					last_mouse_x = event->button.x;
+					last_mouse_y = event->button.y;
+					SDL_ShowCursor(SDL_DISABLE);
+					SDL_SetWindowGrab(MainWindow, SDL_TRUE);
+				}
+				else
+					pb::keydown(options::Options.LeftFlipperKey);
+				break;
+			case SDL_BUTTON_RIGHT:
+				if (!pb::cheat_mode)
+					pb::keydown(options::Options.RightFlipperKey);
+				break;
+			case SDL_BUTTON_MIDDLE:
+				pb::keydown(options::Options.PlungerKey);
+				break;
+			default:
+				break;
+			}
+			break;
+		case SDL_MOUSEBUTTONUP:
+			switch (event->button.button)
+			{
+			case SDL_BUTTON_LEFT:
+				if (mouse_down)
+				{
+					mouse_down = 0;
+					SDL_ShowCursor(SDL_ENABLE);
+					SDL_SetWindowGrab(MainWindow, SDL_FALSE);
+				}
+				if (!pb::cheat_mode)
+					pb::keyup(options::Options.LeftFlipperKey);
+				break;
+			case SDL_BUTTON_RIGHT:
+				if (!pb::cheat_mode)
+					pb::keyup(options::Options.RightFlipperKey);
+				break;
+			case SDL_BUTTON_MIDDLE:
+				pb::keyup(options::Options.PlungerKey);
+				break;
+			default:
+				break;
+			}
+			break;
+#endif
+		case SDL_WINDOWEVENT:
+			switch (event->window.event)
+			{
+			case SDL_WINDOWEVENT_FOCUS_GAINED:
+			case SDL_WINDOWEVENT_TAKE_FOCUS:
+			case SDL_WINDOWEVENT_EXPOSED:
+			case SDL_WINDOWEVENT_SHOWN:
+				activated = 1;
+				Sound::Activate();
+				if (options::Options.Music && !single_step)
+					midi::play_pb_theme(0);
+				no_time_loss = 1;
+				has_focus = 1;
+				gdrv::get_focus();
+				pb::paint();
+				break;
+			case SDL_WINDOWEVENT_FOCUS_LOST:
+			case SDL_WINDOWEVENT_HIDDEN:
+				activated = 0;
+				fullscrn::activate(0);
+				options::Options.FullScreen = 0;
+				Sound::Deactivate();
+				midi::music_stop();
+#ifndef VITA
+				has_focus = 0;
+#endif
+				gdrv::get_focus();
+				pb::loose_focus();
+				break;
+			case SDL_WINDOWEVENT_SIZE_CHANGED:
+			case SDL_WINDOWEVENT_RESIZED:
+				fullscrn::window_size_changed();
+				break;
+			default:;
+			}
 			break;
 		default:
-			break;
-		}
-		break;
-#endif
-	case SDL_WINDOWEVENT:
-		switch (event->window.event)
-		{
-		case SDL_WINDOWEVENT_FOCUS_GAINED:
-		case SDL_WINDOWEVENT_TAKE_FOCUS:
-		case SDL_WINDOWEVENT_EXPOSED:
-		case SDL_WINDOWEVENT_SHOWN:
-			activated = 1;
-			Sound::Activate();
-			if (options::Options.Music && !single_step)
-				midi::play_pb_theme(0);
-			no_time_loss = 1;
-			has_focus = 1;
-			gdrv::get_focus();
-			pb::paint();
-			break;
-		case SDL_WINDOWEVENT_FOCUS_LOST:
-		case SDL_WINDOWEVENT_HIDDEN:
-			activated = 0;
-			fullscrn::activate(0);
-			options::Options.FullScreen = 0;
-			Sound::Deactivate();
-			midi::music_stop();
-		#ifndef VITA
-			has_focus = 0;
-		#endif
-			gdrv::get_focus();
-			pb::loose_focus();
-			break;
-		case SDL_WINDOWEVENT_SIZE_CHANGED:
-		case SDL_WINDOWEVENT_RESIZED:
-			fullscrn::window_size_changed();
-			break;
-		default: ;
-		}
-		break;
-	default:
 #if defined(VITA) && !defined(NDEBUG)
-		if(event->type != 1536 && event->type != 1619 && event->type != 1616)
-			debugNetPrintf(DEBUG, "Default Event Type: %d\n", event->type);
+			if (event->type != 1536 && event->type != 1619 && event->type != 1616)
+				debugNetPrintf(DEBUG, "Default Event Type: %d\n", event->type);
 #endif
-		break;
+			break;
+		}
 	}
-
 	return 1;
 }
 
@@ -1013,7 +1028,11 @@ int winmain::ProcessWindowMessages()
 		return 1;
 	}
 	
-	SDL_WaitEvent(&event);
+	while(SDL_PollEvent(&event) == 0)
+	{
+		event_handler(nullptr);	
+	}
+	// SDL_WaitEvent(&event);
 	return event_handler(&event);
 }
 
@@ -1046,6 +1065,9 @@ void winmain::a_dialog()
 		ImGui::TextUnformatted("Ported to Vita by Axiom (axiom@ignoresolutions.xyz)");
 		ImGui::TextUnformatted("https://github.com/suicvne/SpaceCadetPinball_Vita/");
 #endif
+		ImGui::Separator();
+		ImGui::TextUnformatted("Uses SDL_mixer_x by Wohlstand.");
+		ImGui::TextUnformatted("Licensed under the GPLv3. Source available in repository.");
 		ImGui::Separator();
 
 		if (ImGui::Button("Ok"))
