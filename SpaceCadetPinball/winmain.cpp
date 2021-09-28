@@ -792,6 +792,7 @@ int winmain::event_handler(const SDL_Event* event)
 			case SDL_JOYBUTTONDOWN:
 			case SDL_JOYBUTTONUP:
 #ifdef VITA
+<<<<<<< HEAD
 				if (ImGui_ImplSDL2_GetInputTimeout() == 0)
 					ImGui_ImplSDL2_SetInputTimeout(IMGUI_IMPLSDL2_DEFAULT_COOLDOWN);
 				else
@@ -802,6 +803,19 @@ int winmain::event_handler(const SDL_Event* event)
 				return 1;
 			default:;
 			}
+=======
+#ifndef NDEBUG
+			debugNetPrintf(DEBUG, "HEY!!!! WE GOT A TOUCH EVENT!!!! pos: %.2f, %.2f; delta: %.2f, %.2f\n", event->tfinger.x, event->tfinger.y, event->tfinger.dx, event->tfinger.dy);
+#endif
+#endif
+        break;
+		case SDL_MOUSEMOTION:
+		case SDL_MOUSEBUTTONDOWN:
+		case SDL_MOUSEBUTTONUP:
+		case SDL_MOUSEWHEEL:
+			return 1;
+		default: ;
+>>>>>>> 5a0711487126639f01e367ec735cb81501620745
 		}
 		if (ImIO->WantCaptureKeyboard)
 		{
