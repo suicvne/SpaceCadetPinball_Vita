@@ -22,6 +22,8 @@ struct optionsStruct
 	int Resolution;
 	bool UniformScaling;
 	int CurMidiBackend;
+	int ADLEmu;
+	int ADLBank;
 };
 
 

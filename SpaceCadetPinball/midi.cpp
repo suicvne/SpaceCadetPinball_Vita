@@ -134,6 +134,18 @@ void midi::music_shutdown()
 	Mix_FreeMusic(currentMidi);
 }
 
+void midi::music_reboot()
+{
+	if(pb::FullTiltMode) return;
+
+	Mix_HaltMusic();
+	SDL_Delay(200);
+	Mix_FreeMusic(currentMidi);
+	SDL_Delay(200);
+	music_init();
+	play_pb_theme(0);
+}
+
 
 objlist_class<Mix_Music>* midi::TrackList;
 Mix_Music *midi::track1, *midi::track2, *midi::track3, *midi::active_track, *midi::active_track2;

@@ -91,6 +91,8 @@ public:
 	static int music_stop();
 	static int music_init();
 	static void music_shutdown();
+
+	static void music_reboot();
 private:
 	static Mix_Music* currentMidi;
 

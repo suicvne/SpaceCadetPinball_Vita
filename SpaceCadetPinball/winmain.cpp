@@ -64,12 +64,24 @@ static inline int vita_translate_joystick(int joystickButton)
 static ImFont *custom_font = nullptr;
 static std::map<Mix_MIDI_Device, std::string> _MixerMidiDevices = 
 {
-	{MIDI_ADLMIDI, std::string("ADLMIDI")},
+	{MIDI_ADLMIDI, std::string("OPL3 Synth (ADLMIDI)")},
+	/*
 	{MIDI_Native, std::string("Native")},
 	{MIDI_Timidity, std::string("Timidity")},
-	{MIDI_OPNMIDI, std::string("OPNMIDI")},
+	*/
+	{MIDI_OPNMIDI, std::string("OPN2 Synth (OPNMIDI)")},
 	{MIDI_ANY, ""},
 	{MIDI_KnownDevices, ""}
+};
+
+static std::map<Mix_ADLMIDI_Emulator, std::string> _MixerADLEmus =
+{
+	{ADLMIDI_OPL3_EMU_DEFAULT, "DEFAULT"},
+	{ADLMIDI_OPL3_EMU_NUKED, "Nuked (HEAVY)"},
+	{ADLMIDI_OPL3_EMU_NUKED_1_7_4, "Nuked 1.7.4 (HEAVY)"},
+	{ADLMIDI_OPL3_EMU_DOSBOX, "DOSBox"},
+	{ADLMIDI_OPL3_EMU_OPAL, "Opal"},
+	{ADLMIDI_OPL3_EMU_JAVA, "Java"}
 };
 
 /**
@@ -83,6 +95,10 @@ static inline void vita_setup_custom_imgui_style()
 	curStyle.AntiAliasedLines = false;
 	curStyle.AntiAliasedLinesUseTex = false;
 	curStyle.AntiAliasedFill = false;
+
+	curStyle.Colors[ImGuiCol_Separator] = ImColor(0, 0, 0, 255);
+	curStyle.Colors[ImGuiCol_SeparatorActive] = ImColor(0, 0, 0, 255);
+	curStyle.Colors[ImGuiCol_SeparatorHovered] = ImColor(0, 0, 0, 255);
 
 	curStyle.Colors[ImGuiCol_Border] = ImColor(0,0,0,255);
 	curStyle.Colors[ImGuiCol_MenuBarBg] = ImColor(192,192,192,255);
@@ -104,6 +120,10 @@ static inline void vita_setup_custom_imgui_style()
 
 	curStyle.Colors[ImGuiCol_Text] = ImColor(0, 0, 0, 255);
 
+	curStyle.Colors[ImGuiCol_ScrollbarBg] = ImColor(60, 60, 60, 255);
+	curStyle.Colors[ImGuiCol_ScrollbarGrab] = ImColor(150, 150, 150, 255);
+	curStyle.Colors[ImGuiCol_ScrollbarGrabActive] = ImColor(130, 130, 130, 255);
+
 
 	// curStyle.PopupRounding = 8.0f;
 	curStyle.PopupBorderSize = 2.0f;
@@ -111,6 +131,7 @@ static inline void vita_setup_custom_imgui_style()
 	curStyle.WindowBorderSize = 2.0f;
 	curStyle.FrameBorderSize = 2.0f;
 	curStyle.DisplayWindowPadding = ImVec2(4.0f, 4.0f);
+	curStyle.ScrollbarRounding = 0.f;
 	// curStyle.FrameRounding = 8.f;
 	
 	curStyle.ScaleAllSizes(2.f);
@@ -579,6 +600,7 @@ void winmain::RenderUi()
 				}
 				ImGui::EndMenu();
 			}
+
 			ImGui::Separator();
 
 			if(ImGui::BeginMenu("MIDI Backend"))
@@ -594,14 +616,58 @@ void winmain::RenderUi()
 							options::Options.CurMidiBackend = (int)kvp.first;
 							options::set_int("CurMidiBackend", (int)kvp.first);
 							Mix_SetMidiPlayer(options::Options.CurMidiBackend);
-							midi::music_stop();
-							midi::play_pb_theme(0);
+							midi::music_reboot();
 						}
 						count++;
 					}
 				}
 
 				ImGui::EndMenu();
+			}
+
+			if(options::Options.CurMidiBackend == MIDI_ADLMIDI)
+			{
+				// PICK EMULATOR
+				if(ImGui::BeginMenu("OPL3 Settings"))
+				{
+					for(auto kvp : _MixerADLEmus)
+					{
+						if(ImGui::MenuItem(kvp.second.c_str(), nullptr, options::Options.ADLEmu == (int)kvp.first, true))
+						{
+							printf("Changing ADL Emu (%d -> %d)\n", options::Options.ADLEmu, (int)kvp.first);
+							options::Options.ADLEmu = (int)kvp.first;
+							options::set_int("ADLEmu", (int)kvp.first);
+							Mix_ADLMIDI_setEmulator(options::Options.ADLEmu);
+							Mix_ADLMIDI_setChipsCount(1);
+							midi::music_reboot();
+						}
+					}
+
+					ImGui::EndMenu();
+				}
+
+				// PICK SOUND BANK
+				if(ImGui::BeginMenu("OPL3 Banks"))
+				{
+					const int currentBankID = Mix_ADLMIDI_getBankID();
+					int totalBankNames = Mix_ADLMIDI_getTotalBanks();
+					auto *bankNameArray = Mix_ADLMIDI_getBankNames();
+					int i = 0;
+					for(i = 0; i < totalBankNames; i++)
+					{
+						if(ImGui::MenuItem(bankNameArray[i], nullptr, currentBankID == i, true))
+						{
+							options::Options.ADLBank = i;
+							options::set_int("ADLBank", i);
+							Mix_ADLMIDI_setBankID(i);
+							Mix_ADLMIDI_setChipsCount(1);
+							midi::music_reboot();
+						}
+					}
+					
+
+					ImGui::EndMenu();
+				}
 			}
 
 			ImGui::Separator();

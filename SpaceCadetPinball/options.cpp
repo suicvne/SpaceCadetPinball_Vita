@@ -103,6 +103,8 @@ void options::init()
 	Options.BottomTableBumpKey = get_int("Bottom Table Bump key", Options.BottomTableBumpKey);
 	Options.UniformScaling = get_int("Uniform scaling", Options.UniformScaling);
 	Options.CurMidiBackend = get_int("CurMidiBackend", MIDI_ADLMIDI /*MIDI_ADLMIDI*/);
+	Options.ADLEmu = get_int("ADLEmu", ADLMIDI_OPL3_EMU_DEFAULT);
+	Options.ADLBank = get_int("ADLBank", Mix_ADLMIDI_getBankID());
 	Sound::Enable(0, 7, Options.Sounds);
 
 	update_resolution_menu();
