@@ -18,6 +18,10 @@
 #pragma once
 #include "imgui.h"      // IMGUI_IMPL_API
 
+#ifdef VITA
+#define IMGUI_IMPLSDL2_DEFAULT_COOLDOWN 2
+#endif
+
 struct SDL_Window;
 typedef union SDL_Event SDL_Event;
 
@@ -29,6 +33,11 @@ IMGUI_IMPL_API bool     ImGui_ImplSDL2_InitForSDLRenderer(SDL_Window* window);
 IMGUI_IMPL_API void     ImGui_ImplSDL2_Shutdown();
 IMGUI_IMPL_API void     ImGui_ImplSDL2_NewFrame();
 IMGUI_IMPL_API bool     ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event);
+
+#ifdef VITA
+void ImGui_ImplSDL2_SetInputTimeout(int time_ticks);
+int ImGui_ImplSDL2_GetInputTimeout();
+#endif
 
 #ifndef IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 static inline void ImGui_ImplSDL2_NewFrame(SDL_Window*) { ImGui_ImplSDL2_NewFrame(); } // 1.84: removed unnecessary parameter

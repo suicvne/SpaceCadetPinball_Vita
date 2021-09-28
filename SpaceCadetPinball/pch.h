@@ -31,7 +31,7 @@
 #define SDL_MAIN_HANDLED
 #include "SDL.h"
 // #include <SDL_mixer.h>
-#include <SDL2/SDL_mixer_ext.h>
+#include <SDL_mixer_ext.h>
 
 //https://github.com/ocornut/imgui 7b913db1ce9dd2fd98e5790aa59974dd4496be3b
 #include "imgui.h"
@@ -68,5 +68,14 @@ inline float RandFloat()
 {
 	return static_cast<float>(std::rand() / static_cast<double>(RAND_MAX));
 }
+
+#ifdef VITA
+#ifndef NDEBUG
+#include <debugnet.h>
+#define DEBUG_IP "192.168.0.45"
+#define DEBUG_PORT 18194
+#endif
+#include "vita_input.h"
+#endif
 
 #endif //PCH_H

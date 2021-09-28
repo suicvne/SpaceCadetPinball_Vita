@@ -91,6 +91,7 @@ void options::init()
 	Options.Music = get_int("Music", Options.Music);
 #ifdef VITA
 	Options.FullScreen = 1;
+	Options.Music = 1;
 #else
 	Options.FullScreen = get_int("FullScreen", Options.FullScreen);
 #endif

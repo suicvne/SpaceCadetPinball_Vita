@@ -114,7 +114,8 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
 {
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplSDL2_Data* bd = ImGui_ImplSDL2_GetBackendData();
-
+    if(event != nullptr)
+    {
     switch (event->type)
     {
     case SDL_MOUSEWHEEL:
@@ -161,6 +162,7 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
                 io.AddFocusEvent(false);
             return true;
         }
+    }
     }
     return false;
 }
@@ -418,6 +420,20 @@ static void ImGui_ImplSDL2_UpdateGamepads()
     #undef MAP_ANALOG
 }
 
+#ifdef VITA
+static int _cur_input_timeout = 0;
+
+void ImGui_ImplSDL2_SetInputTimeout(int time_ticks)
+{
+    _cur_input_timeout = time_ticks;
+}
+
+int ImGui_ImplSDL2_GetInputTimeout()
+{
+    return _cur_input_timeout;
+}
+#endif
+
 void ImGui_ImplSDL2_NewFrame()
 {
     ImGui_ImplSDL2_Data* bd = ImGui_ImplSDL2_GetBackendData();
@@ -441,9 +457,17 @@ void ImGui_ImplSDL2_NewFrame()
     io.DeltaTime = bd->Time > 0 ? (float)((double)(current_time - bd->Time) / frequency) : (float)(1.0f / 60.0f);
     bd->Time = current_time;
 
-    ImGui_ImplSDL2_UpdateMousePosAndButtons();
-    ImGui_ImplSDL2_UpdateMouseCursor();
+#ifdef VITA
+    if(_cur_input_timeout <= 0)
+    {
+#endif
+        ImGui_ImplSDL2_UpdateMousePosAndButtons();
+        // Update game controllers (if enabled and available)
+        ImGui_ImplSDL2_UpdateGamepads();
+#ifdef VITA
+    }
+    else _cur_input_timeout--;
+#endif
 
-    // Update game controllers (if enabled and available)
-    ImGui_ImplSDL2_UpdateGamepads();
+    ImGui_ImplSDL2_UpdateMouseCursor();
 }

@@ -187,10 +187,10 @@ set_source_files_properties(
         SpaceCadetPinball/imgui_impl_sdl.cpp
         PROPERTIES SKIP_PRECOMPILE_HEADERS 1
 )
-target_precompile_headers(SpaceCadetPinball
-  PUBLIC
-    SpaceCadetPinball/pch.h
-)
+# target_precompile_headers(SpaceCadetPinball
+#   PUBLIC
+#     SpaceCadetPinball/pch.h
+# )
 
 if(VITA)
     message("VITA!!!!")
@@ -251,6 +251,9 @@ if(VITA)
         SceKernelDmacMgr_stub
         SceVshBridge_stub
     )
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 endif()
 
 target_link_libraries(SpaceCadetPinball ${SDL2_MIXER_LIBRARY} ${SDL2_LIBRARY}  ${VITA_ADDTL_LIBS})
