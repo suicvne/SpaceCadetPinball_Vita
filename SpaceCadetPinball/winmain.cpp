@@ -778,7 +778,9 @@ int winmain::event_handler(const SDL_Event* event)
 		{
 		case SDL_FINGERMOTION:
 #ifdef VITA
+#ifndef NDEBUG
 			debugNetPrintf(DEBUG, "HEY!!!! WE GOT A TOUCH EVENT!!!! pos: %.2f, %.2f; delta: %.2f, %.2f\n", event->tfinger.x, event->tfinger.y, event->tfinger.dx, event->tfinger.dy);
+#endif
 #endif
         break;
 		case SDL_MOUSEMOTION:
