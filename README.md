@@ -1,5 +1,6 @@
 ## About Vita Port
-Ported to PS Vita by Axiom.
+Ported to PS Vita by Axiom. I (Axiom) did *NOT* do the original work of porting & reverse engineering this game, I am simply updating & maintaining a PS Vita port. 
+
 The game compiled without any complaints on PS Vita just by passing the appropriate CMake Flags.
 
 Initial tweaks have been made to get the game feature complete, but for now it's just the barebones.
@@ -15,8 +16,8 @@ R - Right Bumper
 Touch Screen - For now, just the IMGUI gui.
 
 ### TODO Vita
-- Bind tilt controls (left dpad? square and circle? gyro eventually?)
-- Fix music
+- ~~Bind tilt controls (left dpad? square and circle? gyro eventually?)~~
+- ~~Fix music~~
 - (Milestone goal) More Vita-like ImGui style.
 - (Milestone goal) "Vertical" orientation mode
 - (Stretch goal) Re-bind Vita controls.
@@ -69,9 +70,9 @@ Compile with CMake; tested with GCC 10, Clang 11.
  * ~~Decompile original game~~
  * ~~Resizable window, scaled graphics~~
  * ~~Loader for high-res sprites from CADET.DAT~~
- * Misc features of Full Tilt: 3 music tracs, multiball, centered textboxes, etc.
+ * Misc features of Full Tilt: 3 music tracks, multiball, centered textboxes, etc.
  * Cross-platform port
-   * Using SDL2, SDL2_mixer, ImGui
+   * Using SDL2, SDL2_mixer_x (SDL2_mixer works too, but without music support), ImGui
    * Maybe: Android port
  * Maybe x2: support for other two tables 
    * Table specific BL (control interactions and missions) is hardcoded, othere parts might be also patched
