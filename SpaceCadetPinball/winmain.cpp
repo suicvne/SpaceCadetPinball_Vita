@@ -16,13 +16,13 @@ int _newlib_heap_size_user = 80 * 1024 * 1024;
 
 
 
-static bool vita_imgui_enabled = false;
+static bool ImguiEnabled = false;
 static bool needs_focus = false;
 
-static inline void vita_set_imgui_enabled(bool enabled)
+void winmain::SetImguiEnabled(bool enabled)
 {
 	if(enabled) needs_focus = true;
-	vita_imgui_enabled = enabled;
+	ImguiEnabled = enabled;
 }
 
 static inline int vita_translate_joystick(int joystickButton)
@@ -69,7 +69,7 @@ static std::map<Mix_MIDI_Device, std::string> _MixerMidiDevices =
 	*/
 	{MIDI_OPNMIDI, std::string("OPN2 Synth (OPNMIDI)")},
 	{MIDI_ANY, ""},
-	{MIDI_KnownDevices, ""}
+	{MIDI_KnuwnDevices, ""}
 };
 
 static std::map<Mix_ADLMIDI_Emulator, std::string> _MixerADLEmus =
@@ -457,7 +457,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 				frameStart = frameEnd - std::min(elapsedMs - TargetFrameTime, TargetFrameTime) / sdlTimerResMs;
 
 #ifdef VITA
-				if(vita_imgui_enabled)
+				if(ImguiEnabled)
 				{
 #endif
 					ImGui_ImplSDL2_NewFrame();
@@ -475,7 +475,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 				gdrv::BlitScreen();
 
 #ifdef VITA
-				if(vita_imgui_enabled)
+				if(ImguiEnabled)
 				{
 #endif
 					ImGui::Render();
@@ -841,13 +841,13 @@ int winmain::event_handler(const SDL_Event* event)
 			return 0;
 #ifdef VITA
 		case SDL_JOYBUTTONDOWN:
-			if (vita_imgui_enabled == 0)
+			if (ImguiEnabled == 0)
 				pb::keydown(vita_translate_joystick(event->jbutton.button));
 			break;
 		case SDL_JOYBUTTONUP:
 			if (((VITA_BUTTONS)event->jbutton.button) == START)
-				vita_set_imgui_enabled(!vita_imgui_enabled);
-			else if (vita_imgui_enabled == 0)
+				SetImguiEnabled(!ImguiEnabled);
+			else if (ImguiEnabled == 0)
 				pb::keyup(vita_translate_joystick(event->jbutton.button));
 			break;
 #endif

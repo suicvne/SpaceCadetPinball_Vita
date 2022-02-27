@@ -20,9 +20,9 @@ if(WIN32)
 endif()
 
 find_package(SDL2 REQUIRED)
-FIND_PACKAGE(SDL2_mixer REQUIRED)
+#FIND_PACKAGE(SDL2_mixer REQUIRED)
 
-# find_library(SDL2_MIXER_LIBRARY SDL2_mixer_ext)
+find_library(SDL2_MIXER_LIBRARY SDL2_mixer_ext REQUIRED)
 
 
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2_MIXER_INCLUDE_DIR})
@@ -272,6 +272,7 @@ endif()
 
 # Build VPK
 if(VITA)
+	message("VITA!!!!")
     vita_create_self(${VITA_EXE_NAME}.self ./SpaceCadetPinball SAFE)
     vita_create_vpk(${VITA_EXE_NAME}.vpk ${VITA_TITLEID} ${VITA_EXE_NAME}.self
         VERSION ${VITA_VERSION}
