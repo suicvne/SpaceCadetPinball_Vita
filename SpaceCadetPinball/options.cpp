@@ -89,12 +89,7 @@ void options::init()
 	Options.UniformScaling = true;
 	Options.Sounds = get_int("Sounds", Options.Sounds);
 	Options.Music = get_int("Music", Options.Music);
-#ifdef VITA
 	Options.FullScreen = 1;
-	Options.Music = 1;
-#else
-	Options.FullScreen = get_int("FullScreen", Options.FullScreen);
-#endif
 	Options.Players = get_int("Players", Options.Players);
 	Options.LeftFlipperKey = get_int("Left Flipper key", Options.LeftFlipperKey);
 	Options.RightFlipperKey = get_int("Right Flipper key", Options.RightFlipperKey);

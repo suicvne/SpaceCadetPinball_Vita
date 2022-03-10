@@ -554,7 +554,7 @@ void winmain::RenderUi()
 			{
 				pause();
 			}
-
+			
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("High Scores...", nullptr, false, HighScoresEnabled))
@@ -807,11 +807,6 @@ int winmain::event_handler(const SDL_Event* event)
 		{
 			switch (event->type)
 			{
-#ifdef VITA
-			case SDL_TEXTEDITING:
-			case SDL_TEXTINPUT:
-				high_score::vita_done_input();
-#endif
 			case SDL_KEYDOWN:
 			case SDL_KEYUP:
 			case SDL_JOYBUTTONDOWN:
