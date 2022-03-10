@@ -19,8 +19,7 @@
 #define DISPLAY_HEIGHT			544
 #define DISPLAY_STRIDE_IN_PIXELS	1024
 
-static SceImeDialogParam _InternalIMEParams = {0};
-static char16_t _IMEInput[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1] = {0};
+static SceWChar16 _IME_Buffer[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
 static bool _HasInit = false;
 static bool _JustGotWord = false;
 static bool _AutoShowKeyboard = false;
@@ -252,9 +251,9 @@ void high_score::RenderHighScoreDialog()
 						
 							if(_HasInit == false)
 							{
-						#ifndef NDEBUG
+							#ifndef NDEBUG
 								debugNetPrintf(DEBUG, "Starting text input.\n");
-						#endif
+							#endif
 								ImGui::SetKeyboardFocusHere();
 								vita_start_text_input("Enter your name", default_name, SCE_IME_DIALOG_MAX_TEXT_LENGTH);
 								_HasInit = true;
@@ -318,9 +317,8 @@ void high_score::RenderHighScoreDialog()
 
 void high_score::vita_start_text_input(const char *guide_text, const char *initial_text, int max_length)
 {
-	SceWChar16 ime_buffer[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
-	if (vita_keyboard_get(guide_text, initial_text, max_length, ime_buffer)) {
-		SDL_CreateThread(vita_input_thread, "vita_input_thread", (void *)ime_buffer);
+	if (vita_keyboard_get(guide_text, initial_text, max_length, _IME_Buffer)) {
+		SDL_CreateThread(vita_input_thread, "vita_input_thread", (void *)_IME_Buffer);
 	}
 }
 
