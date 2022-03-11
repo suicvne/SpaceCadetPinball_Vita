@@ -254,7 +254,6 @@ void high_score::RenderHighScoreDialog()
 							#ifndef NDEBUG
 								debugNetPrintf(DEBUG, "Starting text input.\n");
 							#endif
-								ImGui::SetKeyboardFocusHere();
 								vita_start_text_input("Enter your name", default_name, SCE_IME_DIALOG_MAX_TEXT_LENGTH);
 								_HasInit = true;
 								_AutoShowKeyboard = false;
@@ -366,16 +365,19 @@ int high_score::vita_input_thread(void *ime_buffer)
 
 			SDL_memset(&result, 0, sizeof(SceImeDialogResult));
 			sceImeDialogGetResult(&result);
+			
+			if (result.button == SCE_IME_DIALOG_BUTTON_ENTER)
+			{
+				// Convert UTF16 to UTF8
+				utf16_to_utf8((SceWChar16 *)ime_buffer, utf8_buffer);
 
-			// Convert UTF16 to UTF8
-			utf16_to_utf8((SceWChar16 *)ime_buffer, utf8_buffer);
-
-			// send sdl event
-			SDL_Event event;
-			event.text.type = SDL_TEXTINPUT;
-			SDL_utf8strlcpy(event.text.text, (const char *)utf8_buffer, SDL_arraysize(event.text.text));
-			SDL_PushEvent(&event);
-
+				// send sdl event
+				SDL_Event event;
+				event.text.type = SDL_TEXTINPUT;
+				SDL_utf8strlcpy(event.text.text, (const char *)utf8_buffer, SDL_arraysize(event.text.text));
+				SDL_PushEvent(&event);
+			}
+			
 			sceImeDialogTerm();
 			high_score::vita_done_input();
 			break;
