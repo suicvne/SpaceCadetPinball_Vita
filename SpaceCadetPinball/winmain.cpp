@@ -491,7 +491,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	}
 
 	gdrv::destroy_bitmap(&gfr_display);
-	options::uninit();
+	options::save();
 	midi::music_shutdown();
 	pb::uninit();
 	Sound::Close();
