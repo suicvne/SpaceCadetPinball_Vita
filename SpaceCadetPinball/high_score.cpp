@@ -95,6 +95,7 @@ int high_score::write(high_score_struct* table)
 	}
 
 	options::set_int("Verification", checkSum);
+	options::save()
 	return 0;
 }
 
@@ -205,7 +206,7 @@ void high_score::RenderHighScoreDialog()
 				{
 					score = dlg_score;
 					ImGui::PushItemWidth(400);
-					ImGui::InputText("###name_input", default_name, IM_ARRAYSIZE(default_name));
+					ImGui::InputText("###name_input", default_name, IM_ARRAYSIZE(default_name), ImGuiInputTextFlags_AutoSelectAll);
 
 					auto &io = ImGui::GetIO();
 					auto active = ImGui::GetActiveID();
@@ -220,12 +221,10 @@ void high_score::RenderHighScoreDialog()
 					#ifndef NDEBUG
 						debugNetPrintf(DEBUG, "Try to show keyboard automatically!\n");
 					#endif
-						ImGui::SetFocusID(ImGui::GetID("###name_input"), ImGui::GetCurrentWindow());
-						ImGui::SetActiveID(ImGui::GetID("###name_input"), ImGui::GetCurrentWindow());
+						ImGui::SetKeyboardFocusHere();
 						
 						io = ImGui::GetIO();
 						active = ImGui::GetActiveID();
-						last = ImGui::GetID("###name_input");
 						
 					#ifndef NDEBUG
 						debugNetPrintf(DEBUG, "Active ID: %u, Last: %u; Equal: %d\n", active, last, active == last);

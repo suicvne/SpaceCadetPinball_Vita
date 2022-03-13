@@ -578,10 +578,6 @@ void winmain::RenderUi()
 
 		if (ImGui::BeginMenu("Options"))
 		{
-			if (ImGui::MenuItem("Full Screen", "F4", options::Options.FullScreen))
-			{
-				options::toggle(Menu1_Full_Screen);
-			}
 			if (ImGui::BeginMenu("Select Players"))
 			{
 				if (ImGui::MenuItem("1 Player", nullptr, options::Options.Players == 1))
