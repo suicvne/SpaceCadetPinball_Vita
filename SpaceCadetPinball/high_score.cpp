@@ -95,7 +95,6 @@ int high_score::write(high_score_struct* table)
 	}
 
 	options::set_int("Verification", checkSum);
-	options::save()
 	return 0;
 }
 
@@ -281,6 +280,7 @@ void high_score::RenderHighScoreDialog()
 			{
 				default_name[31] = 0;
 				place_new_score_into(dlg_hst, dlg_score, default_name, dlg_position);
+				high_score::write(dlg_hst);
 			}
 			ImGui::CloseCurrentPopup();
 		}
@@ -299,6 +299,7 @@ void high_score::RenderHighScoreDialog()
 			{
 				clear_table(dlg_hst);
 				ImGui::CloseCurrentPopup();
+				high_score::write(dlg_hst);
 			}
 			ImGui::SetItemDefaultFocus();
 			ImGui::SameLine();
