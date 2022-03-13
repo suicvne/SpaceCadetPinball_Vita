@@ -198,6 +198,8 @@ uint32_t timeGetTimeAlt()
 int winmain::WinMain(LPCSTR lpCmdLine)
 {
 	memory::init(memalloc_failure);
+	
+	SDL_setenv("VITA_DISABLE_TOUCH_BACK", "1", 1);
 
 	// SDL init
 	SDL_SetMainReady();
@@ -207,16 +209,10 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		return 1;
 	}
 
-#ifdef VITA
-	SDL_setenv("VITA_DISABLE_TOUCH_BACK", "TRUE", 1);
 	BasePath = SDL_GetPrefPath(nullptr, "SpaceCadetPinball");
-#else
-	BasePath = SDL_GetBasePath();
-#endif
 	pinball::quickFlag = strstr(lpCmdLine, "-quick") != nullptr;
 	DatFileName = options::get_string("Pinball Data", pinball::get_rc_string(168, 0));
 
-#if VITA
 #ifndef NDEBUG
 	std::string dataFullPath = BasePath + DatFileName;
 	debugNetInit(DEBUG_IP, DEBUG_PORT, DEBUG);
@@ -224,7 +220,6 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 #endif
 
 	vita_init_joystick();
-#endif
 
 
 	/*Check for full tilt .dat file and switch to it automatically*/
@@ -273,9 +268,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	ImGuiSDL::Initialize(renderer, 0, 0);
 	ImGui::StyleColorsDark();
 	ImGuiIO& io = ImGui::GetIO();
-#ifdef VITA
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-#endif
 	ImIO = &io;
 
 	// ImGui_ImplSDL2_Init is private, we are not actually using ImGui OpenGl backend
@@ -456,33 +449,21 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 				// Keep track of remainder, limited to one frame time.
 				frameStart = frameEnd - std::min(elapsedMs - TargetFrameTime, TargetFrameTime) / sdlTimerResMs;
 
-#ifdef VITA
 				if(ImguiEnabled)
 				{
-#endif
 					ImGui_ImplSDL2_NewFrame();
-						
-
 					ImGui::NewFrame();
-					
-
 					RenderUi();
-#ifdef VITA
 				}
-#endif
 
 				SDL_RenderClear(renderer);
 				gdrv::BlitScreen();
 
-#ifdef VITA
 				if(ImguiEnabled)
 				{
-#endif
 					ImGui::Render();
 					ImGuiSDL::Render(ImGui::GetDrawData());
-#ifdef VITA
 				}
-#endif
 
 				SDL_RenderPresent(renderer);
 				frameCounter++;
@@ -739,9 +720,7 @@ void winmain::RenderUi()
 #endif
 			)
 		{
-#ifdef VITA
 			needs_focus = false;
-#endif
 			auto defaultMenu = ImGui::GetID("Launch Ball");
 			auto parentMenu = ImGui::GetID("Game");
 #if defined(VITA) && !defined(NDEBUG)
@@ -830,7 +809,6 @@ int winmain::event_handler(const SDL_Event* event)
 			fullscrn::shutdown();
 			return_value = 0;
 			return 0;
-#ifdef VITA
 		case SDL_JOYBUTTONDOWN:
 			if (ImguiEnabled == 0)
 				pb::keydown(vita_translate_joystick(event->jbutton.button));
@@ -841,7 +819,6 @@ int winmain::event_handler(const SDL_Event* event)
 			else if (ImguiEnabled == 0)
 				pb::keyup(vita_translate_joystick(event->jbutton.button));
 			break;
-#endif
 		case SDL_KEYUP:
 			pb::keyup(event->key.keysym.sym);
 			break;
