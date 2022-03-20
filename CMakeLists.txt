@@ -3,6 +3,8 @@ project(SpaceCadetPinball)
 
 set(CMAKE_CXX_STANDARD 11)
 
+OPTION(NDEBUG "Disables sending debug info to the local network" ON)
+
 if(VITA)
     include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 endif()
@@ -194,7 +196,15 @@ set_source_files_properties(
 
 if(VITA)
     message("VITA!!!!")
-    target_compile_definitions(SpaceCadetPinball PUBLIC -DVITA)
+	target_compile_definitions(SpaceCadetPinball PUBLIC -DVITA)
+	
+	if(NDEBUG)
+		message("Debug disabled")
+		add_definitions(-DNDEBUG)
+	else()
+		message("Debug enabled")
+	endif(NDEBUG)
+	
     set(VITA_EXE_NAME SpaceCadetPinballVita)
     set(VITA_APP_NAME "Space Cadet Pinball")
     set(VITA_TITLEID "SPACEPINB")
@@ -272,7 +282,6 @@ endif()
 
 # Build VPK
 if(VITA)
-	message("VITA!!!!")
     vita_create_self(${VITA_EXE_NAME}.self ./SpaceCadetPinball SAFE)
     vita_create_vpk(${VITA_EXE_NAME}.vpk ${VITA_TITLEID} ${VITA_EXE_NAME}.self
         VERSION ${VITA_VERSION}

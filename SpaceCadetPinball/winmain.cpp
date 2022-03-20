@@ -985,7 +985,7 @@ int winmain::event_handler(const SDL_Event* event)
 int winmain::ProcessWindowMessages()
 {
 	SDL_Event event;
-	if (has_focus && !single_step)
+	if (has_focus)
 	{
 		while (SDL_PollEvent(&event))
 		{
@@ -996,11 +996,7 @@ int winmain::ProcessWindowMessages()
 		return 1;
 	}
 	
-	while(SDL_PollEvent(&event) == 0)
-	{
-		event_handler(nullptr);	
-	}
-	// SDL_WaitEvent(&event);
+	//SDL_WaitEvent(&event);
 	return event_handler(&event);
 }
 
