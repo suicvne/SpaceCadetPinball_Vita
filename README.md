@@ -83,3 +83,5 @@ mkdir build && cd build
 cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DSDL2_PATH=$VITASDK/arm-vita-eabi/lib/libSDL2.a -DSDL2_INCLUDE_DIR=$VITASDK/arm-vita-eabi/include/SDL2 -DSDL2_MIXER_LIBRARY=$VITASDK/arm-vita-eabi/lib/libSDL2_mixer_ext.a -DSDL2_MIXER_INCLUDE_DIR=$VITASDK/arm-vita-eabi/include ../
 make
 ```
+
+### Debugging
