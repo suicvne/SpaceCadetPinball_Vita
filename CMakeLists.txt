@@ -3,6 +3,8 @@ project(SpaceCadetPinball)
 
 set(CMAKE_CXX_STANDARD 11)
 
+OPTION(NETDEBUG "Enables/disables sending debug info over the local network" OFF)
+
 if(VITA)
     include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 endif()
@@ -20,9 +22,9 @@ if(WIN32)
 endif()
 
 find_package(SDL2 REQUIRED)
-FIND_PACKAGE(SDL2_mixer REQUIRED)
+#FIND_PACKAGE(SDL2_mixer REQUIRED)
 
-# find_library(SDL2_MIXER_LIBRARY SDL2_mixer_ext)
+find_library(SDL2_MIXER_LIBRARY SDL2_mixer_ext REQUIRED)
 
 
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2_MIXER_INCLUDE_DIR})
@@ -194,7 +196,15 @@ set_source_files_properties(
 
 if(VITA)
     message("VITA!!!!")
-    target_compile_definitions(SpaceCadetPinball PUBLIC -DVITA)
+	target_compile_definitions(SpaceCadetPinball PUBLIC -DVITA)
+	
+	if(NETDEBUG)
+		message("Debug output enabled")
+		add_definitions(-DNETDEBUG)
+	else()
+		message("Debug output disabled")
+	endif(NETDEBUG)
+	
     set(VITA_EXE_NAME SpaceCadetPinballVita)
     set(VITA_APP_NAME "Space Cadet Pinball")
     set(VITA_TITLEID "SPACEPINB")

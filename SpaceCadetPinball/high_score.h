@@ -1,5 +1,6 @@
 #pragma once
 #include "pinball.h"
+#include <psp2/types.h>
 
 struct high_score_struct
 {
@@ -30,4 +31,9 @@ private :
 	static char default_name[32];
 	static high_score_struct* dlg_hst;
 	static bool ShowDialog;
+	static void vita_start_text_input(const char *guide_text, const char *initial_text, int max_length);
+	static int vita_keyboard_get(const char *guide_text, const char *initial_text, int max_len, SceWChar16 *buf);
+	static int vita_input_thread(void *ime_buffer);
+	static void utf16_to_utf8(const uint16_t *src, uint8_t *dst);
+	static void utf8_to_utf16(const uint8_t *src, uint16_t *dst);
 };

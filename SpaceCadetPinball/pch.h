@@ -70,7 +70,7 @@ inline float RandFloat()
 }
 
 #ifdef VITA
-#ifndef NDEBUG
+#ifdef NETDEBUG
 #include <debugnet.h>
 #define DEBUG_IP "192.168.0.45"
 #define DEBUG_PORT 18194

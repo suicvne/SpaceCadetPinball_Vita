@@ -1,18 +1,14 @@
-## About Vita Port
-Ported to PS Vita by Axiom. I (Axiom) did *NOT* do the original work of porting & reverse engineering this game, I am simply updating & maintaining a PS Vita port. 
+# Space Cadet Pinball for Playstation Vita
+Reverse engineered by [@k4zmu2a](https://github.com/k4zmu2a) and ported to the PS Vita by [@Axiom](https://github.com/suicvne). Build process documented and small improvements done by [@AlphaNERD-](https://github.com/AlphaNERD-).
 
-The game compiled without any complaints on PS Vita just by passing the appropriate CMake Flags.
-
-Initial tweaks have been made to get the game feature complete, but for now it's just the barebones.
+Find out more about the reverse engineering project here: [k4zmu2a/SpaceCadetPinball](https://github.com/k4zmu2a/SpaceCadetPinball)
 
 Controls:
 
-X - Plunger
-
-L - Left Bumper
-
-R - Right Bumper
-
+X - Plunger  
+L - Left Bumper  
+R - Right Bumper  
+DPAD left, up and right - Nudge Table in the respective direction  
 Touch Screen - For now, just the IMGUI gui.
 
 ### TODO Vita
@@ -24,60 +20,75 @@ Touch Screen - For now, just the IMGUI gui.
 - ~~I need to increase the size of the IMGUI controls and add support for the full range of Vita input.~~ DONE
 - ~~I would also like to bind the main Pinball menus to the Vita Dpad/Cross button.~~ DONE
 
-## Building Vita Port
-Requires VITASDK installed.
+## How to play
+1. Download .vpk file from Releases page. (Alternatively build your own .vpk file from source.)
+2. Load the .vpk file onto your PS Vita.
+3. Install the .vpk using VitaShell.
+4. Copy the files from Space Cadet Pinball to your PS Vita into the directory ux0:data/SpaceCadetPinball and enjoy! (Google is absolutely helpful if you don't have the files already)
+
+## How to build from source
+### Part 1: Install the VITASDK
+Instructions on how to install the VITASDK are available on [vitasdk.org](https://vitasdk.org/)
+
+### Part 2: Build and install AudioCodecs
+To build the AudioCodecs, run the following commands. Don't worry, all these commands work Windows too. That's why we use MSYS2. No WSL or other VM with Linux necessary.
+```sh
+wget --no-check-certificate --content-disposition https://github.com/WohlSoft/SDL-Mixer-X/releases/download/2.5.0-1/AudioCodecs-2021-09-23.zip
+unzip AudioCodecs-2021-09-23.zip
+cd AudioCodecs-2021-09-23
+mkdir build && cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake ../
+make
+```
+
+After the build is done, run the following commands to install everything.
+```sh
+cp -a lib/. $VITASDK/arm-vita-eabi/lib/
+cd ..
+cp -a FluidLite/include/. $VITASDK/arm-vita-eabi/include
+cp -a libFLAC/include/. $VITASDK/arm-vita-eabi/include
+cp -a libgme/include/. $VITASDK/arm-vita-eabi/include
+cp -a libmad/include/. $VITASDK/arm-vita-eabi/include
+cp -a libmikmod/include/. $VITASDK/arm-vita-eabi/include
+cp -a libmodplug/include/. $VITASDK/arm-vita-eabi/include
+cp -a libopenmpt/include/. $VITASDK/arm-vita-eabi/include
+cp -a libOPNMIDI/include/. $VITASDK/arm-vita-eabi/include
+cp -a libopus/include/. $VITASDK/arm-vita-eabi/include
+cp -a libopusfile/include/. $VITASDK/arm-vita-eabi/include
+cp -a libtimidity-sdl/include/. $VITASDK/arm-vita-eabi/include
+cp -a libvorbis/include/. $VITASDK/arm-vita-eabi/include
+cp -a libxmp/include/. $VITASDK/arm-vita-eabi/include
+```
+
+### Part 3: Build and install SDL-Mixer-X
+This process is similar to what we did with the AudioCodecs. Run these commands to build and install SDL-Mixer-X.
+```sh
+wget --no-check-certificate --content-disposition https://github.com/WohlSoft/SDL-Mixer-X/archive/refs/tags/2.5.0-1.zip
+unzip SDL-Mixer-X-2.5.0-1.zip
+cd SDL-Mixer-X-2.5.0-1/
+mkdir build && cd build
+cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake DSDL2_LIBRARY=$VITASDK/arm-vita-eabi/lib/libSDL2.a -DSDL2_INCLUDE_DIR=$VITASDK/arm-vita-eabi/include/SDL2 ../
+make
+cp -a lib/. $VITASDK/arm-vita-eabi/lib/
+cd ..
+cp include/SDL_mixer.h $VITASDK/arm-vita-eabi/include/SDL_mixer_ext.h
+```
+
+### Part 4: Actually build Space Cadet Pinball
+Now we're finally ready to build the game! Run these commands to build the .vpk file. You won't need to do the previous steps for future builds.
 ```sh
 git clone https://github.com/suicvne/SpaceCadetPinball_Vita.git
 cd SpaceCadetPinball_Vita/
 mkdir build && cd build
-cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DSDL2_PATH=$VITASDK/arm-vita-eabi/lib/ -DSDL2_INCLUDE_DIR=$VITASDK/arm-vita-eabi/include/SDL2 ../
+cmake -DCMAKE_TOOLCHAIN_FILE=$VITASDK/share/vita.toolchain.cmake -DSDL2_PATH=$VITASDK/arm-vita-eabi/lib/libSDL2.a -DSDL2_INCLUDE_DIR=$VITASDK/arm-vita-eabi/include/SDL2 -DSDL2_MIXER_LIBRARY=$VITASDK/arm-vita-eabi/lib/libSDL2_mixer_ext.a -DSDL2_MIXER_INCLUDE_DIR=$VITASDK/arm-vita-eabi/include ../
+make
 ```
-Place resources from your copy of the game into ux0:data/SpaceCadetPinball. The directory will be created the first time you run the game.
 
-# SpaceCadetPinball
-**Summary:** Reverse engineering of `3D Pinball for Windows – Space Cadet`, a game bundled with Windows.
+### Debugging
+In order to debug the game, you have to enable the debug output. No step-in debugging available here, so unfortunately we have to make do with a simple debug output over the network.
 
-**How to play:** Place compiled executable into a folder containing original game resources (not included).\
-Supports data files from Windows and Full Tilt versions of the game.
-\
-\
-\
-\
-\
-\
-**Source:**
- * `pinball.exe` from `Windows XP` (SHA-1 `2A5B525E0F631BB6107639E2A69DF15986FB0D05`) and its public PDB
- * `CADET.EXE` 32bit version from `Full Tilt! Pinball` (SHA-1 `3F7B5699074B83FD713657CD94671F2156DBEDC4`)
+First you have to set your desired IP and Port in `pch.h`. You have to edit the lines `#define DEBUG_IP` and `#define DEBUG_PORT`.
 
-**Tools used:** `Ghidra`, `Ida`, `Visual Studio`
+The next step is to enable the debug output by adding `-DNETDEBUG=ON` before `../` to the cmake command shown in Part 4.
 
-**What was done:**
- * All structures were populated, globals and locals named.
- * All subs were decompiled, C pseudo code was converted to compilable C++. Loose (namespace?) subs were assigned to classes.
-
-**Compiling:**\
-Project uses `C++11` and depends on `SDL2` libs.\
-On Windows:\
-Download and unpack devel packages for `SDL2` and `SDL2_mixer`.\
-Set paths to them in CMakeLists.txt, see suggested placement in /Libs.\
-Compile with Visual Studio; tested with 2019. 
-
-On Linux:\
-Install devel packages for `SDL2` and `SDL2_mixer`.\
-Compile with CMake; tested with GCC 10, Clang 11. 
-
-**Plans:**
- * ~~Decompile original game~~
- * ~~Resizable window, scaled graphics~~
- * ~~Loader for high-res sprites from CADET.DAT~~
- * Misc features of Full Tilt: 3 music tracks, multiball, centered textboxes, etc.
- * Cross-platform port
-   * Using SDL2, SDL2_mixer_x (SDL2_mixer works too, but without music support), ImGui
-   * Maybe: Android port
- * Maybe x2: support for other two tables 
-   * Table specific BL (control interactions and missions) is hardcoded, othere parts might be also patched
-
-**On 64-bit bug that killed the game:**\
-I did not find it, decompiled game worked in x64 mode on the first try.\
-It was either lost in decompilation or introduced in x64 port/not present in x86 build.\
-Based on public description of the bug (no ball collision), I guess that the bug was in `TEdgeManager::TestGridBox`
+To receive the debug output, you have to install socat or a similar tool. In case of socat you have to run `socat udp-recv:<Port number> stdout` to see the output.

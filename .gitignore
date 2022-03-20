@@ -273,3 +273,7 @@ out/
 # Windows XP stuff
 DebugWinXp/
 ReleaseWinXp/
+
+#CMake directories
+/build
+/CMakeFiles

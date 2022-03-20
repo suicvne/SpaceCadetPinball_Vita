@@ -33,7 +33,7 @@ public:
 	static optionsStruct Options;
 
 	static void init();
-	static void uninit();
+	static void save();
 	static int get_int(LPCSTR lpValueName, int defaultValue);
 	static void set_int(LPCSTR lpValueName, int data);
 	static std::string get_string(LPCSTR lpValueName, LPCSTR defaultValue);
