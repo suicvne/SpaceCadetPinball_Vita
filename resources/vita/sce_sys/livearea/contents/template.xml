@@ -12,7 +12,11 @@
 	<frame id="frame7">
 		<liveitem>
 			<text>
-				<str size="20" color="#ffffff" shadow="on">Ported by Axiom</str>
+				<str size="20" color="#ffffff" shadow="on">
+				Reverse-engineered by k4zmu2a
+				Ported by Axiom
+				Polished by MyFairJulie
+				</str>
 			</text>
 		</liveitem>
 	</frame>

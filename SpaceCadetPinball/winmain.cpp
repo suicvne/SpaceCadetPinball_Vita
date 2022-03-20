@@ -1024,11 +1024,10 @@ void winmain::a_dialog()
 	{
 		ImGui::TextUnformatted("3D Pinball for Windows - Space Cadet");
 		ImGui::TextUnformatted("Decompiled -> Ported to SDL by k4zmu2a");
-#ifdef VITA
 		ImGui::Separator();
 		ImGui::TextUnformatted("Ported to Vita by Axiom (axiom@ignoresolutions.xyz)");
-		ImGui::TextUnformatted("https://github.com/suicvne/SpaceCadetPinball_Vita/");
-#endif
+		ImGui::TextUnformatted("Polished by MyFairJulie (Twitter: @myfairjulia)");
+		ImGui::TextUnformatted("https://github.com/AlphaNERD-/SpaceCadetPinball_Vita/");
 		ImGui::Separator();
 		ImGui::TextUnformatted("Uses SDL_mixer_x by Wohlstand.");
 		ImGui::TextUnformatted("Licensed under the GPLv3. Source available in repository.");
