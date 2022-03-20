@@ -6,7 +6,7 @@
 #include "pinball.h"
 
 #ifdef VITA
-#ifndef NDEBUG
+#ifdef NETDEBUG
 #include <debugnet.h>
 #endif
 #endif

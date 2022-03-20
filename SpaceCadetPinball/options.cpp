@@ -8,7 +8,7 @@
 #include "resource.h"
 #include "Sound.h"
 #include "winmain.h"
-#ifndef NDEBUG
+#ifdef NETDEBUG
 #include <debugnet.h>
 #endif
 
@@ -111,7 +111,7 @@ void options::init()
 
 void options::save()
 {
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	debugNetPrintf(DEBUG, "Start applying settings.\n");
 #endif
 	set_int("Sounds", Options.Sounds);
@@ -277,7 +277,7 @@ void* options::MyUserData_ReadOpen(ImGuiContext* ctx, ImGuiSettingsHandler* hand
 
 void options::MyUserData_WriteAll(ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
 {
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	debugNetPrintf(DEBUG, "Writing settings.\n");
 #endif
 	buf->appendf("[%s][%s]\n", handler->TypeName, "Settings");
@@ -303,7 +303,7 @@ const std::string& options::GetSetting(const std::string& key, const std::string
 
 void options::SetSetting(const std::string& key, const std::string& value)
 {
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	debugNetPrintf(DEBUG, "Setting applied:%s, New value:%s\n", key, value);
 #endif
 	settings[key] = value;

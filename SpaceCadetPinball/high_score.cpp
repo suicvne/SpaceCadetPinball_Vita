@@ -10,7 +10,7 @@
 #include <psp2/types.h>
 #include <codecvt>
 #include <cstring>
-#ifndef NDEBUG
+#ifdef NETDEBUG
 #include <debugnet.h>
 #endif
 #include "winmain.h"
@@ -26,7 +26,7 @@ static bool _AutoShowKeyboard = false;
 
 void high_score::vita_done_input()
 {
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	debugNetPrintf(DEBUG, "Stopping text input.\n");
 #endif
 	_JustGotWord = true;
@@ -211,13 +211,13 @@ void high_score::RenderHighScoreDialog()
 					auto active = ImGui::GetActiveID();
 					auto last = ImGui::GetID("###name_input");
 					
-				#ifndef NDEBUG
+				#ifdef NETDEBUG
 					debugNetPrintf(DEBUG, "Active ID: %u, Last: %u; Equal: %d\n", active, last, active == last);
 				#endif
 					
 					if (_AutoShowKeyboard)
 					{
-					#ifndef NDEBUG
+					#ifdef NETDEBUG
 						debugNetPrintf(DEBUG, "Try to show keyboard automatically!\n");
 					#endif
 						ImGui::SetKeyboardFocusHere();
@@ -225,7 +225,7 @@ void high_score::RenderHighScoreDialog()
 						io = ImGui::GetIO();
 						active = ImGui::GetActiveID();
 						
-					#ifndef NDEBUG
+					#ifdef NETDEBUG
 						debugNetPrintf(DEBUG, "Active ID: %u, Last: %u; Equal: %d\n", active, last, active == last);
 						debugNetPrintf(DEBUG, "Do i have your attention now? %d\n", io.WantCaptureKeyboard);
 					#endif
@@ -243,13 +243,13 @@ void high_score::RenderHighScoreDialog()
 						}
 						else
 						{
-						#ifndef NDEBUG
+						#ifdef NETDEBUG
 							debugNetPrintf(DEBUG, "Active ID: %u, Last: %u; Equal: %d\n", active, last, active == last);
 						#endif
 						
 							if(_HasInit == false)
 							{
-							#ifndef NDEBUG
+							#ifdef NETDEBUG
 								debugNetPrintf(DEBUG, "Starting text input.\n");
 							#endif
 								vita_start_text_input("Enter your name", default_name, SCE_IME_DIALOG_MAX_TEXT_LENGTH);

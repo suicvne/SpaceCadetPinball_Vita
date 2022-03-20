@@ -213,7 +213,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	pinball::quickFlag = strstr(lpCmdLine, "-quick") != nullptr;
 	DatFileName = options::get_string("Pinball Data", pinball::get_rc_string(168, 0));
 
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	std::string dataFullPath = BasePath + DatFileName;
 	debugNetInit(DEBUG_IP, DEBUG_PORT, DEBUG);
 	debugNetPrintf(INFO, "The data path is '%s'\n", dataFullPath.c_str());
@@ -355,7 +355,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 					snprintf(buf, sizeof buf, "Updates/sec = %02.02f Frames/sec = %02.02f ",
 					          300.0f / elapsedSec, frameCounter / elapsedSec);
 					SDL_SetWindowTitle(window, buf);
-#if defined(VITA) && !defined(NDEBUG)
+#if defined(VITA) && defined(NETDEBUG)
 					debugNetPrintf(DEBUG, buf);
 #endif
 					frameCounter = 0;
@@ -512,7 +512,7 @@ void winmain::RenderUi()
 		ImGui::PushFont(custom_font);
 
 	// No demo window in release to save space
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	if (ShowImGuiDemo)
 		ImGui::ShowDemoWindow();
 #endif
@@ -691,7 +691,7 @@ void winmain::RenderUi()
 
 		if (ImGui::BeginMenu("Help"))
 		{
-#ifndef NDEBUG
+#ifdef NETDEBUG
 			if (ImGui::MenuItem("ImGui Demo", nullptr, ShowImGuiDemo))
 			{
 				ShowImGuiDemo ^= true;
@@ -723,7 +723,7 @@ void winmain::RenderUi()
 			needs_focus = false;
 			auto defaultMenu = ImGui::GetID("Launch Ball");
 			auto parentMenu = ImGui::GetID("Game");
-#if defined(VITA) && !defined(NDEBUG)
+#if defined(VITA) && defined(NETDEBUG)
 			debugNetPrintf(DEBUG, "FOCUSING %u & its child %u\n", parentMenu, defaultMenu);
 #endif
 			ImGui::OpenPopup(parentMenu);
@@ -972,7 +972,7 @@ int winmain::event_handler(const SDL_Event* event)
 			}
 			break;
 		default:
-#if defined(VITA) && !defined(NDEBUG)
+#if defined(VITA) && defined(NETDEBUG)
 			if (event->type != 1536 && event->type != 1619 && event->type != 1616)
 				debugNetPrintf(DEBUG, "Default Event Type: %d\n", event->type);
 #endif
