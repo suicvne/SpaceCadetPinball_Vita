@@ -36,6 +36,7 @@ public:
 	static void launch_ball();
 	static void end_game();
 	static void high_scores();
+	static void live_area();
 	static void tilt_no_more();
 	static bool chk_highscore();
 	static float collide(float timeNow, float timeDelta, TBall* ball);

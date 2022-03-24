@@ -554,6 +554,12 @@ void winmain::RenderUi()
 				SDL_Event event{SDL_QUIT};
 				SDL_PushEvent(&event);
 			}
+			
+			if (ImGui::MenuItem("Fuck up Live Area"))
+			{
+				pb::live_area();
+			}
+			
 			ImGui::EndMenu();
 		}
 
@@ -723,7 +729,7 @@ void winmain::RenderUi()
 			needs_focus = false;
 			auto defaultMenu = ImGui::GetID("Launch Ball");
 			auto parentMenu = ImGui::GetID("Game");
-#if defined(VITA) && defined(NETDEBUG)
+#ifdef NETDEBUG
 			debugNetPrintf(DEBUG, "FOCUSING %u & its child %u\n", parentMenu, defaultMenu);
 #endif
 			ImGui::OpenPopup(parentMenu);

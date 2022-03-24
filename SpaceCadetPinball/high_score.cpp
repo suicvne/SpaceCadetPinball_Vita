@@ -4,10 +4,12 @@
 #include "memory.h"
 #include "options.h"
 
-#if VITA
+#include "livearea.h"
+
 #include <psp2/ime_dialog.h>
 #include <psp2/apputil.h>
 #include <psp2/types.h>
+#include <psp2/sysmodule.h> 
 #include <codecvt>
 #include <cstring>
 #ifdef NETDEBUG
@@ -31,7 +33,6 @@ void high_score::vita_done_input()
 #endif
 	_JustGotWord = true;
 }
-#endif
 
 int high_score::dlg_enter_name;
 int high_score::dlg_score;
@@ -97,6 +98,65 @@ int high_score::write(high_score_struct* table)
 	options::set_int("Verification", checkSum);
 	return 0;
 }
+
+void high_score::update_live_area(high_score_struct* table)
+{
+	int result = sceSysmoduleLoadModule(SCE_SYSMODULE_LIVEAREA);
+	
+	debugNetPrintf(DEBUG, "Is libLiveArea loaded? %X\n", result);
+	
+	char bufferTitle [300];
+	
+	const char* frameXmlStr = 
+    "<frame id='frame%d' rev='1'>" 
+        "<liveitem id='1'><text><str size=\"20\" color=\"#ffffff\" shadow=\"on\">%s</str></text></liveitem>" 
+    "</frame>";
+	
+	sprintf(bufferTitle, frameXmlStr, 1, "Highscore");
+	
+	debugNetPrintf(DEBUG, "Frame: %s\n", bufferTitle);
+	
+	result = sceLiveAreaUpdateFrameSync(
+			SCE_LIVEAREA_FORMAT_VER_CURRENT,
+			bufferTitle, 
+			strlen(bufferTitle),
+			"app0:my_livearea_update",
+			SCE_LIVEAREA_FLAG_NONE);
+			
+	debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+	
+	for (auto position = 0; position < 5; ++position)
+	{
+		char buffer [300];
+		char scores [30];
+		
+		auto tablePtr = &table[position];
+		
+		sprintf(scores, "%d", tablePtr->Score);
+		sprintf(buffer, frameXmlStr, position + 2, scores);
+		
+		debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
+		
+		result = sceLiveAreaUpdateFrameSync(
+			SCE_LIVEAREA_FORMAT_VER_CURRENT,
+			buffer, 
+			strlen(buffer),
+			"app0:my_livearea_update",
+			SCE_LIVEAREA_FLAG_NONE);
+			
+		debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+		
+		/*snprintf(Buffer, sizeof Buffer, "%d", position);
+		strcat(Buffer, ".Name");
+		options::set_string(Buffer, tablePtr->Name);
+
+		snprintf(Buffer, sizeof Buffer, "%d", position);
+		strcat(Buffer, ".Score");
+		options::set_int(Buffer, tablePtr->Score);*/
+	}
+}
+
+
 
 void high_score::clear_table(high_score_struct* table)
 {

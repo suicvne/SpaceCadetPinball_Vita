@@ -44,6 +44,7 @@ set(SOURCE_FILES
         SpaceCadetPinball/gdrv.h
         SpaceCadetPinball/high_score.cpp
         SpaceCadetPinball/high_score.h
+		SpaceCadetPinball/livearea.h
         SpaceCadetPinball/loader.cpp
         SpaceCadetPinball/loader.h
         SpaceCadetPinball/maths.cpp
@@ -260,6 +261,7 @@ if(VITA)
         SceKernelThreadMgr_stub
         SceKernelDmacMgr_stub
         SceVshBridge_stub
+		SceLiveArea_stub
     )
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")

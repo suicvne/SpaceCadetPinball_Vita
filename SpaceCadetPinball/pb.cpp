@@ -578,6 +578,11 @@ void pb::high_scores()
 	high_score::show_high_score_dialog(highscore_table);
 }
 
+void pb::live_area()
+{
+	high_score::update_live_area(highscore_table);
+}
+
 void pb::tilt_no_more()
 {
 	if (MainTable->TiltLockFlag)
