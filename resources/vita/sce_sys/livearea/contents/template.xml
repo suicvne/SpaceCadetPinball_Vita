@@ -9,6 +9,18 @@
 		<startup-image>startup.png</startup-image>
 	</gate>
 	
+	<frame id='frame2' rev='1'>
+        <liveitem id='1'><image>text_part1.png</image></liveitem>
+    </frame>
+	
+	<frame id='frame3' rev='1'>
+        <liveitem id='1'><image>text_part2.png</image></liveitem>
+    </frame>
+	
+	<frame id='frame4' rev='1'>
+        <liveitem id='1'><image>text_part3.png</image></liveitem>
+    </frame>
+	
 	<frame id="frame7">
 		<liveitem>
 			<text>
