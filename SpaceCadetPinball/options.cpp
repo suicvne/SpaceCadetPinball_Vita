@@ -304,7 +304,7 @@ const std::string& options::GetSetting(const std::string& key, const std::string
 void options::SetSetting(const std::string& key, const std::string& value)
 {
 #ifdef NETDEBUG
-	debugNetPrintf(DEBUG, "Setting applied:%s, New value:%s\n", key, value);
+	debugNetPrintf(DEBUG, "Setting applied: %s, New value: %s\n", key.c_str(), value.c_str());
 #endif
 	settings[key] = value;
 	if (ImGui::GetCurrentContext())
