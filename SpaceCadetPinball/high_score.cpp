@@ -99,98 +99,6 @@ int high_score::write(high_score_struct* table)
 	return 0;
 }
 
-void high_score::update_live_area(high_score_struct* table)
-{
-	int result = sceSysmoduleLoadModule(SCE_SYSMODULE_LIVEAREA);
-	
-#ifdef NETDEBUG
-	debugNetPrintf(DEBUG, "Is libLiveArea loaded? %X\n", result);
-#endif
-	
-	char bufferTitle [300];
-	
-	const char* frameXmlStrTitle = 
-    "<frame id='frame1' rev='1'>" 
-        "<liveitem id='1'><text><str size=\"40\" color=\"#ffffff\" shadow=\"on\">Highscore</str></text></liveitem>" 
-    "</frame>";
-	
-	sprintf(bufferTitle, frameXmlStrTitle);
-	
-#ifdef NETDEBUG
-	debugNetPrintf(DEBUG, "Frame: %s\n", bufferTitle);
-#endif
-	
-	result = sceLiveAreaUpdateFrameSync(
-		SCE_LIVEAREA_FORMAT_VER_CURRENT,
-		bufferTitle, 
-		strlen(bufferTitle),
-		"app0:my_livearea_update",
-		SCE_LIVEAREA_FLAG_NONE);
-	
-#ifdef NETDEBUG
-	debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
-#endif
-	
-	const char* frameXmlStr = 
-    "<frame id='frame%d' rev='1'>" 
-        "<liveitem id='1'><text align=\"left\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d. %s: %s</str></text></liveitem>" 
-    "</frame>";
-	
-	for (auto position = 0; position < 5; ++position)
-	{
-		char buffer [300];
-		char score [30];
-		char name [30];
-		
-		auto tablePtr = &table[position];
-		
-		sprintf(score, "%d", tablePtr->Score);
-		sprintf(name, "%s", tablePtr->Name);
-		sprintf(buffer, frameXmlStr, position + 2, position + 1, name, score);
-		
-	#ifdef NETDEBUG
-		debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
-	#endif
-		
-		result = sceLiveAreaUpdateFrameSync(
-			SCE_LIVEAREA_FORMAT_VER_CURRENT,
-			buffer, 
-			strlen(buffer),
-			"app0:my_livearea_update",
-			SCE_LIVEAREA_FLAG_NONE);
-			
-	#ifdef NETDEBUG
-		debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
-	#endif
-	}
-	
-	char bufferFramelogo [300];
-	
-	const char* frameLogoXmlStr = 
-    "<frame id='frame7' rev='1'>" 
-        "<liveitem id='1'><image>text_frame7.png</image></liveitem>" 
-    "</frame>";
-	
-	sprintf(bufferFramelogo, frameLogoXmlStr);
-	
-#ifdef NETDEBUG
-	debugNetPrintf(DEBUG, "Frame: %s\n", bufferFramelogo);
-#endif
-	
-	result = sceLiveAreaUpdateFrameSync(
-		SCE_LIVEAREA_FORMAT_VER_CURRENT,
-		bufferFramelogo, 
-		strlen(bufferFramelogo),
-		"app0:sce_sys/livearea/contents",
-		SCE_LIVEAREA_FLAG_NONE);
-	
-#ifdef NETDEBUG
-	debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
-#endif
-}
-
-
-
 void high_score::clear_table(high_score_struct* table)
 {
 	for (int index = 5; index; --index)
@@ -405,6 +313,109 @@ void high_score::RenderHighScoreDialog()
 
 		ImGui::EndPopup();
 	}
+}
+
+void high_score::update_live_area(high_score_struct* table)
+{
+	SDL_CreateThread(update_live_area_thread, "update_live_area_thread", table);
+}
+
+int high_score::update_live_area_thread(void *tablePtr)
+{
+	high_score_struct* table = reinterpret_cast<high_score_struct*>(tablePtr);
+	
+	int result = sceSysmoduleLoadModule(SCE_SYSMODULE_LIVEAREA);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is libLiveArea loaded? %X\n", result);
+#endif
+	
+	char bufferTitle [300];
+	
+	const char* frameXmlStrTitle = 
+    "<frame id='frame1' rev='1'>" 
+        "<liveitem id='1'><text><str size=\"40\" color=\"#ffffff\" shadow=\"on\">Highscore</str></text></liveitem>" 
+    "</frame>";
+	
+	sprintf(bufferTitle, frameXmlStrTitle);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Frame: %s\n", bufferTitle);
+#endif
+	
+	result = sceLiveAreaUpdateFrameSync(
+		SCE_LIVEAREA_FORMAT_VER_CURRENT,
+		bufferTitle, 
+		strlen(bufferTitle),
+		"app0:my_livearea_update",
+		SCE_LIVEAREA_FLAG_NONE);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+#endif
+	
+	const char* frameXmlStr = 
+    "<frame id='frame%d' rev='1'>" 
+        "<liveitem id='1'><text align=\"left\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d. %s: %s</str></text></liveitem>" 
+    "</frame>";
+	
+	for (auto position = 0; position < 5; ++position)
+	{
+		char buffer [300];
+		char score [30];
+		char name [30];
+		
+		auto tablePtr = &table[position];
+		
+		sprintf(score, "%d", tablePtr->Score);
+		sprintf(name, "%s", tablePtr->Name);
+		sprintf(buffer, frameXmlStr, position + 2, position + 1, name, score);
+		
+	#ifdef NETDEBUG
+		debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
+	#endif
+		
+		result = sceLiveAreaUpdateFrameSync(
+			SCE_LIVEAREA_FORMAT_VER_CURRENT,
+			buffer, 
+			strlen(buffer),
+			"app0:my_livearea_update",
+			SCE_LIVEAREA_FLAG_NONE);
+			
+	#ifdef NETDEBUG
+		debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+	#endif
+	}
+	
+	char bufferFramelogo [300];
+	
+	const char* frameLogoXmlStr = 
+    "<frame id='frame7' rev='1'>" 
+        "<liveitem id='1'><image>text_frame7.png</image></liveitem>" 
+    "</frame>";
+	
+	sprintf(bufferFramelogo, frameLogoXmlStr);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Frame: %s\n", bufferFramelogo);
+#endif
+	
+	result = sceLiveAreaUpdateFrameSync(
+		SCE_LIVEAREA_FORMAT_VER_CURRENT,
+		bufferFramelogo, 
+		strlen(bufferFramelogo),
+		"app0:sce_sys/livearea/contents",
+		SCE_LIVEAREA_FLAG_NONE);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+#endif
+
+	result = sceSysmoduleUnloadModule(SCE_SYSMODULE_LIVEAREA);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is libLiveArea unloaded? %X\n", result);
+#endif
 }
 
 void high_score::vita_start_text_input(const char *guide_text, const char *initial_text, int max_length)

@@ -29,6 +29,7 @@ private :
 	static char default_name[32];
 	static high_score_struct* dlg_hst;
 	static bool ShowDialog;
+	static int update_live_area_thread(void* table);
 	static void vita_start_text_input(const char *guide_text, const char *initial_text, int max_length);
 	static int vita_keyboard_get(const char *guide_text, const char *initial_text, int max_len, SceWChar16 *buf);
 	static int vita_input_thread(void *ime_buffer);
