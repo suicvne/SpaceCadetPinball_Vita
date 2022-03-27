@@ -20,8 +20,10 @@
 #define DISPLAY_WIDTH			960
 #define DISPLAY_HEIGHT			544
 #define DISPLAY_STRIDE_IN_PIXELS	1024
+#define MAX_TEXT_LENGTH 30
 
-static SceWChar16 _IME_Buffer[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
+static int maxTextLength = 30;
+static SceWChar16 _IME_Buffer[MAX_TEXT_LENGTH];
 static bool _HasInit = false;
 static bool _JustGotWord = false;
 static bool _AutoShowKeyboard = false;
@@ -253,7 +255,7 @@ void high_score::RenderHighScoreDialog()
 							#ifdef NETDEBUG
 								debugNetPrintf(DEBUG, "Starting text input.\n");
 							#endif
-								vita_start_text_input("Enter your name", default_name, SCE_IME_DIALOG_MAX_TEXT_LENGTH);
+								vita_start_text_input("Enter your name", default_name, maxTextLength);
 								_HasInit = true;
 								_AutoShowKeyboard = false;
 							}
@@ -282,6 +284,7 @@ void high_score::RenderHighScoreDialog()
 				default_name[31] = 0;
 				place_new_score_into(dlg_hst, dlg_score, default_name, dlg_position);
 				high_score::write(dlg_hst);
+				high_score::update_live_area(dlg_hst);
 			}
 			ImGui::CloseCurrentPopup();
 		}
@@ -301,6 +304,7 @@ void high_score::RenderHighScoreDialog()
 				clear_table(dlg_hst);
 				ImGui::CloseCurrentPopup();
 				high_score::write(dlg_hst);
+				high_score::update_live_area(dlg_hst);
 			}
 			ImGui::SetItemDefaultFocus();
 			ImGui::SameLine();
@@ -359,6 +363,11 @@ int high_score::update_live_area_thread(void *tablePtr)
         "<liveitem id='1'><text align=\"left\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d. %s: %s</str></text></liveitem>" 
     "</frame>";
 	
+	const char* frameXmlStrEmpty = 
+    "<frame id='frame%d' rev='1'>" 
+        "<liveitem id='1'><text align=\"left\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d.</str></text></liveitem>" 
+    "</frame>";
+	
 	for (auto position = 0; position < 5; ++position)
 	{
 		char buffer [300];
@@ -367,24 +376,46 @@ int high_score::update_live_area_thread(void *tablePtr)
 		
 		auto tablePtr = &table[position];
 		
-		sprintf(score, "%d", tablePtr->Score);
-		sprintf(name, "%s", tablePtr->Name);
-		sprintf(buffer, frameXmlStr, position + 2, position + 1, name, score);
-		
-	#ifdef NETDEBUG
-		debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
-	#endif
-		
-		result = sceLiveAreaUpdateFrameSync(
-			SCE_LIVEAREA_FORMAT_VER_CURRENT,
-			buffer, 
-			strlen(buffer),
-			"app0:my_livearea_update",
-			SCE_LIVEAREA_FLAG_NONE);
+		if (tablePtr->Score != -999)
+		{
+			sprintf(score, "%d", tablePtr->Score);
+			sprintf(name, "%s", tablePtr->Name);
+			sprintf(buffer, frameXmlStr, position + 2, position + 1, name, score);
 			
-	#ifdef NETDEBUG
-		debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
-	#endif
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
+		#endif
+			
+			result = sceLiveAreaUpdateFrameSync(
+				SCE_LIVEAREA_FORMAT_VER_CURRENT,
+				buffer, 
+				strlen(buffer),
+				"app0:my_livearea_update",
+				SCE_LIVEAREA_FLAG_NONE);
+				
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+		#endif
+		}
+		else
+		{
+			sprintf(buffer, frameXmlStrEmpty, position + 2, position + 1);
+			
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
+		#endif
+			
+			result = sceLiveAreaUpdateFrameSync(
+				SCE_LIVEAREA_FORMAT_VER_CURRENT,
+				buffer, 
+				strlen(buffer),
+				"app0:my_livearea_update",
+				SCE_LIVEAREA_FLAG_NONE);
+				
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+		#endif
+		}
 	}
 	
 	char bufferFramelogo [300];

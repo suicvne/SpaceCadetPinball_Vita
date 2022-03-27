@@ -553,13 +553,7 @@ void winmain::RenderUi()
 			{
 				SDL_Event event{SDL_QUIT};
 				SDL_PushEvent(&event);
-			}
-			
-			if (ImGui::MenuItem("Fuck up Live Area"))
-			{
-				pb::live_area();
-			}
-			
+			}			
 			ImGui::EndMenu();
 		}
 
