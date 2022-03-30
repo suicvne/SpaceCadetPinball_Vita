@@ -20,9 +20,8 @@
 #define DISPLAY_WIDTH			960
 #define DISPLAY_HEIGHT			544
 #define DISPLAY_STRIDE_IN_PIXELS	1024
-#define MAX_TEXT_LENGTH 30
 
-static int maxTextLength = 30;
+static const int MAX_TEXT_LENGTH = 20;
 static SceWChar16 _IME_Buffer[MAX_TEXT_LENGTH];
 static bool _HasInit = false;
 static bool _JustGotWord = false;
@@ -45,7 +44,7 @@ bool high_score::ShowDialog = false;
 
 int high_score::read(high_score_struct* table)
 {
-	char Buffer[20];
+	char Buffer[MAX_TEXT_LENGTH];
 
 	int checkSum = 0;
 	clear_table(table);
@@ -76,7 +75,7 @@ int high_score::read(high_score_struct* table)
 
 int high_score::write(high_score_struct* table)
 {
-	char Buffer[20];
+	char Buffer[MAX_TEXT_LENGTH];
 
 	int checkSum = 0;
 	for (auto position = 0; position < 5; ++position)
@@ -255,7 +254,7 @@ void high_score::RenderHighScoreDialog()
 							#ifdef NETDEBUG
 								debugNetPrintf(DEBUG, "Starting text input.\n");
 							#endif
-								vita_start_text_input("Enter your name", default_name, maxTextLength);
+								vita_start_text_input("Enter your name", default_name, MAX_TEXT_LENGTH);
 								_HasInit = true;
 								_AutoShowKeyboard = false;
 							}
@@ -360,7 +359,7 @@ int high_score::update_live_area_thread(void *tablePtr)
 	
 	const char* frameXmlStr = 
     "<frame id='frame%d' rev='1'>" 
-        "<liveitem id='1'><text align=\"left\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d. %s: %s</str></text></liveitem>" 
+        "<liveitem id='1'><text align=\"left\" word-wrap=\"off\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d. %s: %s</str></text></liveitem>" 
     "</frame>";
 	
 	const char* frameXmlStrEmpty = 
@@ -371,16 +370,14 @@ int high_score::update_live_area_thread(void *tablePtr)
 	for (auto position = 0; position < 5; ++position)
 	{
 		char buffer [300];
-		char score [30];
-		char name [30];
 		
 		auto tablePtr = &table[position];
 		
+		std::string tmpScore = std::to_string(tablePtr->Score);
+		
 		if (tablePtr->Score != -999)
 		{
-			sprintf(score, "%d", tablePtr->Score);
-			sprintf(name, "%s", tablePtr->Name);
-			sprintf(buffer, frameXmlStr, position + 2, position + 1, name, score);
+			sprintf(buffer, frameXmlStr, position + 2, position + 1, tablePtr->Name, tmpScore.c_str());
 			
 		#ifdef NETDEBUG
 			debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
