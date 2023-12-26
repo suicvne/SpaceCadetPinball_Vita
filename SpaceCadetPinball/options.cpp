@@ -8,6 +8,9 @@
 #include "resource.h"
 #include "Sound.h"
 #include "winmain.h"
+#ifdef NETDEBUG
+#include <debugnet.h>
+#endif
 
 optionsStruct options::Options{};
 
@@ -89,12 +92,7 @@ void options::init()
 	Options.UniformScaling = true;
 	Options.Sounds = get_int("Sounds", Options.Sounds);
 	Options.Music = get_int("Music", Options.Music);
-#ifdef VITA
 	Options.FullScreen = 1;
-	Options.Music = 1;
-#else
-	Options.FullScreen = get_int("FullScreen", Options.FullScreen);
-#endif
 	Options.Players = get_int("Players", Options.Players);
 	Options.LeftFlipperKey = get_int("Left Flipper key", Options.LeftFlipperKey);
 	Options.RightFlipperKey = get_int("Right Flipper key", Options.RightFlipperKey);
@@ -111,8 +109,11 @@ void options::init()
 	update_resolution_menu();
 }
 
-void options::uninit()
+void options::save()
 {
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Start applying settings.\n");
+#endif
 	set_int("Sounds", Options.Sounds);
 	set_int("Music", Options.Music);
 	set_int("FullScreen", Options.FullScreen);
@@ -159,7 +160,7 @@ void options::toggle(uint32_t uIDCheckItem)
 		newValue = Options.Sounds == 0;
 		Options.Sounds = Options.Sounds == 0;
 		Sound::Enable(0, 7, newValue);
-		return;
+		break;
 	case Menu1_Music:
 		newValue = Options.Music == 0;
 		Options.Music = Options.Music == 0;
@@ -167,12 +168,12 @@ void options::toggle(uint32_t uIDCheckItem)
 			midi::music_stop();
 		else
 			midi::play_pb_theme(0);
-		return;
+		break;
 	case Menu1_Full_Screen:
 		newValue = Options.FullScreen == 0;
 		Options.FullScreen = Options.FullScreen == 0;
 		fullscrn::set_screen_mode(newValue);
-		return;
+		break;
 	case Menu1_1Player:
 	case Menu1_2Players:
 	case Menu1_3Players:
@@ -209,6 +210,8 @@ void options::toggle(uint32_t uIDCheckItem)
 	default:
 		break;
 	}
+	
+	options::save();
 }
 
 void options::update_resolution_menu()
@@ -274,6 +277,9 @@ void* options::MyUserData_ReadOpen(ImGuiContext* ctx, ImGuiSettingsHandler* hand
 
 void options::MyUserData_WriteAll(ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
 {
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Writing settings.\n");
+#endif
 	buf->appendf("[%s][%s]\n", handler->TypeName, "Settings");
 	for (const auto& setting : settings)
 	{
@@ -297,6 +303,9 @@ const std::string& options::GetSetting(const std::string& key, const std::string
 
 void options::SetSetting(const std::string& key, const std::string& value)
 {
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Setting applied: %s, New value: %s\n", key.c_str(), value.c_str());
+#endif
 	settings[key] = value;
 	if (ImGui::GetCurrentContext())
 		ImGui::MarkIniSettingsDirty();

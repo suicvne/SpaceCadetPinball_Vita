@@ -16,13 +16,13 @@ int _newlib_heap_size_user = 80 * 1024 * 1024;
 
 
 
-static bool vita_imgui_enabled = false;
+static bool ImguiEnabled = false;
 static bool needs_focus = false;
 
-static inline void vita_set_imgui_enabled(bool enabled)
+void winmain::SetImguiEnabled(bool enabled)
 {
 	if(enabled) needs_focus = true;
-	vita_imgui_enabled = enabled;
+	ImguiEnabled = enabled;
 }
 
 static inline int vita_translate_joystick(int joystickButton)
@@ -69,7 +69,7 @@ static std::map<Mix_MIDI_Device, std::string> _MixerMidiDevices =
 	*/
 	{MIDI_OPNMIDI, std::string("OPN2 Synth (OPNMIDI)")},
 	{MIDI_ANY, ""},
-	{MIDI_KnownDevices, ""}
+	{MIDI_KnuwnDevices, ""}
 };
 
 static std::map<Mix_ADLMIDI_Emulator, std::string> _MixerADLEmus =
@@ -198,6 +198,8 @@ uint32_t timeGetTimeAlt()
 int winmain::WinMain(LPCSTR lpCmdLine)
 {
 	memory::init(memalloc_failure);
+	
+	SDL_setenv("VITA_DISABLE_TOUCH_BACK", "1", 1);
 
 	// SDL init
 	SDL_SetMainReady();
@@ -207,24 +209,17 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 		return 1;
 	}
 
-#ifdef VITA
-	SDL_setenv("VITA_DISABLE_TOUCH_BACK", "TRUE", 1);
 	BasePath = SDL_GetPrefPath(nullptr, "SpaceCadetPinball");
-#else
-	BasePath = SDL_GetBasePath();
-#endif
 	pinball::quickFlag = strstr(lpCmdLine, "-quick") != nullptr;
 	DatFileName = options::get_string("Pinball Data", pinball::get_rc_string(168, 0));
 
-#if VITA
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	std::string dataFullPath = BasePath + DatFileName;
 	debugNetInit(DEBUG_IP, DEBUG_PORT, DEBUG);
 	debugNetPrintf(INFO, "The data path is '%s'\n", dataFullPath.c_str());
 #endif
 
 	vita_init_joystick();
-#endif
 
 
 	/*Check for full tilt .dat file and switch to it automatically*/
@@ -273,9 +268,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	ImGuiSDL::Initialize(renderer, 0, 0);
 	ImGui::StyleColorsDark();
 	ImGuiIO& io = ImGui::GetIO();
-#ifdef VITA
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-#endif
 	ImIO = &io;
 
 	// ImGui_ImplSDL2_Init is private, we are not actually using ImGui OpenGl backend
@@ -362,7 +355,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 					snprintf(buf, sizeof buf, "Updates/sec = %02.02f Frames/sec = %02.02f ",
 					          300.0f / elapsedSec, frameCounter / elapsedSec);
 					SDL_SetWindowTitle(window, buf);
-#if defined(VITA) && !defined(NDEBUG)
+#if defined(VITA) && defined(NETDEBUG)
 					debugNetPrintf(DEBUG, buf);
 #endif
 					frameCounter = 0;
@@ -456,33 +449,21 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 				// Keep track of remainder, limited to one frame time.
 				frameStart = frameEnd - std::min(elapsedMs - TargetFrameTime, TargetFrameTime) / sdlTimerResMs;
 
-#ifdef VITA
-				if(vita_imgui_enabled)
+				if(ImguiEnabled)
 				{
-#endif
 					ImGui_ImplSDL2_NewFrame();
-						
-
 					ImGui::NewFrame();
-					
-
 					RenderUi();
-#ifdef VITA
 				}
-#endif
 
 				SDL_RenderClear(renderer);
 				gdrv::BlitScreen();
 
-#ifdef VITA
-				if(vita_imgui_enabled)
+				if(ImguiEnabled)
 				{
-#endif
 					ImGui::Render();
 					ImGuiSDL::Render(ImGui::GetDrawData());
-#ifdef VITA
 				}
-#endif
 
 				SDL_RenderPresent(renderer);
 				frameCounter++;
@@ -491,7 +472,7 @@ int winmain::WinMain(LPCSTR lpCmdLine)
 	}
 
 	gdrv::destroy_bitmap(&gfr_display);
-	options::uninit();
+	options::save();
 	midi::music_shutdown();
 	pb::uninit();
 	Sound::Close();
@@ -531,7 +512,7 @@ void winmain::RenderUi()
 		ImGui::PushFont(custom_font);
 
 	// No demo window in release to save space
-#ifndef NDEBUG
+#ifdef NETDEBUG
 	if (ShowImGuiDemo)
 		ImGui::ShowDemoWindow();
 #endif
@@ -554,7 +535,7 @@ void winmain::RenderUi()
 			{
 				pause();
 			}
-
+			
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("High Scores...", nullptr, false, HighScoresEnabled))
@@ -572,16 +553,12 @@ void winmain::RenderUi()
 			{
 				SDL_Event event{SDL_QUIT};
 				SDL_PushEvent(&event);
-			}
+			}			
 			ImGui::EndMenu();
 		}
 
 		if (ImGui::BeginMenu("Options"))
 		{
-			if (ImGui::MenuItem("Full Screen", "F4", options::Options.FullScreen))
-			{
-				options::toggle(Menu1_Full_Screen);
-			}
 			if (ImGui::BeginMenu("Select Players"))
 			{
 				if (ImGui::MenuItem("1 Player", nullptr, options::Options.Players == 1))
@@ -714,7 +691,7 @@ void winmain::RenderUi()
 
 		if (ImGui::BeginMenu("Help"))
 		{
-#ifndef NDEBUG
+#ifdef NETDEBUG
 			if (ImGui::MenuItem("ImGui Demo", nullptr, ShowImGuiDemo))
 			{
 				ShowImGuiDemo ^= true;
@@ -743,12 +720,10 @@ void winmain::RenderUi()
 #endif
 			)
 		{
-#ifdef VITA
 			needs_focus = false;
-#endif
 			auto defaultMenu = ImGui::GetID("Launch Ball");
 			auto parentMenu = ImGui::GetID("Game");
-#if defined(VITA) && !defined(NDEBUG)
+#ifdef NETDEBUG
 			debugNetPrintf(DEBUG, "FOCUSING %u & its child %u\n", parentMenu, defaultMenu);
 #endif
 			ImGui::OpenPopup(parentMenu);
@@ -807,11 +782,6 @@ int winmain::event_handler(const SDL_Event* event)
 		{
 			switch (event->type)
 			{
-#ifdef VITA
-			case SDL_TEXTEDITING:
-			case SDL_TEXTINPUT:
-				high_score::vita_done_input();
-#endif
 			case SDL_KEYDOWN:
 			case SDL_KEYUP:
 			case SDL_JOYBUTTONDOWN:
@@ -839,18 +809,16 @@ int winmain::event_handler(const SDL_Event* event)
 			fullscrn::shutdown();
 			return_value = 0;
 			return 0;
-#ifdef VITA
 		case SDL_JOYBUTTONDOWN:
-			if (vita_imgui_enabled == 0)
+			if (ImguiEnabled == 0)
 				pb::keydown(vita_translate_joystick(event->jbutton.button));
 			break;
 		case SDL_JOYBUTTONUP:
 			if (((VITA_BUTTONS)event->jbutton.button) == START)
-				vita_set_imgui_enabled(!vita_imgui_enabled);
-			else if (vita_imgui_enabled == 0)
+				SetImguiEnabled(!ImguiEnabled);
+			else if (ImguiEnabled == 0)
 				pb::keyup(vita_translate_joystick(event->jbutton.button));
 			break;
-#endif
 		case SDL_KEYUP:
 			pb::keyup(event->key.keysym.sym);
 			break;
@@ -1004,7 +972,7 @@ int winmain::event_handler(const SDL_Event* event)
 			}
 			break;
 		default:
-#if defined(VITA) && !defined(NDEBUG)
+#if defined(VITA) && defined(NETDEBUG)
 			if (event->type != 1536 && event->type != 1619 && event->type != 1616)
 				debugNetPrintf(DEBUG, "Default Event Type: %d\n", event->type);
 #endif
@@ -1017,7 +985,7 @@ int winmain::event_handler(const SDL_Event* event)
 int winmain::ProcessWindowMessages()
 {
 	SDL_Event event;
-	if (has_focus && !single_step)
+	if (has_focus)
 	{
 		while (SDL_PollEvent(&event))
 		{
@@ -1028,11 +996,7 @@ int winmain::ProcessWindowMessages()
 		return 1;
 	}
 	
-	while(SDL_PollEvent(&event) == 0)
-	{
-		event_handler(nullptr);	
-	}
-	// SDL_WaitEvent(&event);
+	//SDL_WaitEvent(&event);
 	return event_handler(&event);
 }
 
@@ -1060,11 +1024,10 @@ void winmain::a_dialog()
 	{
 		ImGui::TextUnformatted("3D Pinball for Windows - Space Cadet");
 		ImGui::TextUnformatted("Decompiled -> Ported to SDL by k4zmu2a");
-#ifdef VITA
 		ImGui::Separator();
 		ImGui::TextUnformatted("Ported to Vita by Axiom (axiom@ignoresolutions.xyz)");
-		ImGui::TextUnformatted("https://github.com/suicvne/SpaceCadetPinball_Vita/");
-#endif
+		ImGui::TextUnformatted("Polished by MyFairJulie (Twitter: @myfairjulia)");
+		ImGui::TextUnformatted("https://github.com/AlphaNERD-/SpaceCadetPinball_Vita/");
 		ImGui::Separator();
 		ImGui::TextUnformatted("Uses SDL_mixer_x by Wohlstand.");
 		ImGui::TextUnformatted("Licensed under the GPLv3. Source available in repository.");

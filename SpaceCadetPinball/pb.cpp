@@ -99,6 +99,7 @@ int pb::init()
 	MainTable = new TPinballTable();
 
 	high_score::read(highscore_table);
+	high_score::update_live_area(highscore_table);
 	ball_speed_limit = MainTable->BallList->Get(0)->Offset * 200.0f;
 	--memory::critical_allocation;
 	return 0;

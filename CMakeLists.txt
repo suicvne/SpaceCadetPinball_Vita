@@ -3,6 +3,8 @@ project(SpaceCadetPinball)
 
 set(CMAKE_CXX_STANDARD 11)
 
+OPTION(NETDEBUG "Enables/disables sending debug info over the local network" OFF)
+
 if(VITA)
     include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 endif()
@@ -20,9 +22,9 @@ if(WIN32)
 endif()
 
 find_package(SDL2 REQUIRED)
-FIND_PACKAGE(SDL2_mixer REQUIRED)
+#FIND_PACKAGE(SDL2_mixer REQUIRED)
 
-# find_library(SDL2_MIXER_LIBRARY SDL2_mixer_ext)
+find_library(SDL2_MIXER_LIBRARY SDL2_mixer_ext REQUIRED)
 
 
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2_MIXER_INCLUDE_DIR})
@@ -42,6 +44,7 @@ set(SOURCE_FILES
         SpaceCadetPinball/gdrv.h
         SpaceCadetPinball/high_score.cpp
         SpaceCadetPinball/high_score.h
+		SpaceCadetPinball/livearea.h
         SpaceCadetPinball/loader.cpp
         SpaceCadetPinball/loader.h
         SpaceCadetPinball/maths.cpp
@@ -194,7 +197,15 @@ set_source_files_properties(
 
 if(VITA)
     message("VITA!!!!")
-    target_compile_definitions(SpaceCadetPinball PUBLIC -DVITA)
+	target_compile_definitions(SpaceCadetPinball PUBLIC -DVITA)
+	
+	if(NETDEBUG)
+		message("Debug output enabled")
+		add_definitions(-DNETDEBUG)
+	else()
+		message("Debug output disabled")
+	endif(NETDEBUG)
+	
     set(VITA_EXE_NAME SpaceCadetPinballVita)
     set(VITA_APP_NAME "Space Cadet Pinball")
     set(VITA_TITLEID "SPACEPINB")
@@ -250,6 +261,7 @@ if(VITA)
         SceKernelThreadMgr_stub
         SceKernelDmacMgr_stub
         SceVshBridge_stub
+		SceLiveArea_stub
     )
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
@@ -281,6 +293,10 @@ if(VITA)
                 ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
                 ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
                 ${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
+				${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/text_part1.png sce_sys/livearea/contents/text_part1.png
+				${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/text_part2.png sce_sys/livearea/contents/text_part2.png
+				${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/text_part3.png sce_sys/livearea/contents/text_part3.png
+				${CMAKE_SOURCE_DIR}/resources/vita/sce_sys/livearea/contents/text_frame7.png sce_sys/livearea/contents/text_frame7.png
     )
     add_custom_target(copy 
         COMMAND cp ${VITA_EXE_NAME}.self eboot.bin

@@ -4,11 +4,15 @@
 #include "memory.h"
 #include "options.h"
 
-#if VITA
+#include "livearea.h"
+
 #include <psp2/ime_dialog.h>
 #include <psp2/apputil.h>
+#include <psp2/types.h>
+#include <psp2/sysmodule.h> 
 #include <codecvt>
-#ifndef NDEBUG
+#include <cstring>
+#ifdef NETDEBUG
 #include <debugnet.h>
 #endif
 #include "winmain.h"
@@ -17,34 +21,19 @@
 #define DISPLAY_HEIGHT			544
 #define DISPLAY_STRIDE_IN_PIXELS	1024
 
-static SceImeDialogParam _InternalIMEParams = {0};
-static char16_t _IMEInput[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1] = {0};
+static const int MAX_TEXT_LENGTH = 20;
+static SceWChar16 _IME_Buffer[MAX_TEXT_LENGTH];
 static bool _HasInit = false;
 static bool _JustGotWord = false;
-
-static void _Vita_ShowIME()
-{
-	if(_HasInit == false)
-	{
-#ifndef NDEBUG
-		debugNetPrintf(DEBUG, "Starting text input.\n");
-#endif
-		SDL_StartTextInput();
-		_HasInit = true;
-	}
-}
+static bool _AutoShowKeyboard = false;
 
 void high_score::vita_done_input()
 {
-#ifndef NDEBUG
-	debugNetPrintf(DEBUG, "vita_done_input\n");
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Stopping text input.\n");
 #endif
-	SDL_StopTextInput();
 	_JustGotWord = true;
 }
-// TODO: Do I need to sceSysmoduleLoadModule(SCE_SYSMODULE_IME); 
-// Or does SDL itself already do this for me by design? (It shows dialogs, but maybe not IMEs?)
-#endif
 
 int high_score::dlg_enter_name;
 int high_score::dlg_score;
@@ -55,7 +44,7 @@ bool high_score::ShowDialog = false;
 
 int high_score::read(high_score_struct* table)
 {
-	char Buffer[20];
+	char Buffer[MAX_TEXT_LENGTH];
 
 	int checkSum = 0;
 	clear_table(table);
@@ -86,7 +75,7 @@ int high_score::read(high_score_struct* table)
 
 int high_score::write(high_score_struct* table)
 {
-	char Buffer[20];
+	char Buffer[MAX_TEXT_LENGTH];
 
 	int checkSum = 0;
 	for (auto position = 0; position < 5; ++position)
@@ -176,6 +165,8 @@ void high_score::show_and_set_high_score_dialog(high_score_struct* table, int sc
 	dlg_enter_name = 1;
 	strncpy(default_name, defaultName, sizeof default_name);
 	ShowDialog = true;
+	winmain::SetImguiEnabled(true);
+	_AutoShowKeyboard = true;
 }
 
 void high_score::RenderHighScoreDialog()
@@ -215,39 +206,60 @@ void high_score::RenderHighScoreDialog()
 				if (dlg_enter_name == 1 && dlg_position == row)
 				{
 					score = dlg_score;
-				#ifdef VITA
 					ImGui::PushItemWidth(400);
-				#else
-					ImGui::PushItemWidth(200);
-				#endif
-					ImGui::InputText("###name_input", default_name, IM_ARRAYSIZE(default_name));
+					ImGui::InputText("###name_input", default_name, IM_ARRAYSIZE(default_name), ImGuiInputTextFlags_AutoSelectAll);
 
-				#ifdef VITA
 					auto &io = ImGui::GetIO();
 					auto active = ImGui::GetActiveID();
 					auto last = ImGui::GetID("###name_input");
+					
+				#ifdef NETDEBUG
+					debugNetPrintf(DEBUG, "Active ID: %u, Last: %u; Equal: %d\n", active, last, active == last);
+				#endif
+					
+					if (_AutoShowKeyboard)
+					{
+					#ifdef NETDEBUG
+						debugNetPrintf(DEBUG, "Try to show keyboard automatically!\n");
+					#endif
+						ImGui::SetKeyboardFocusHere();
+						
+						io = ImGui::GetIO();
+						active = ImGui::GetActiveID();
+						
+					#ifdef NETDEBUG
+						debugNetPrintf(DEBUG, "Active ID: %u, Last: %u; Equal: %d\n", active, last, active == last);
+						debugNetPrintf(DEBUG, "Do i have your attention now? %d\n", io.WantCaptureKeyboard);
+					#endif
+					}
+					
 					if (io.WantCaptureKeyboard && active != 0 && active == last)
 					{
 						if(_JustGotWord)
 						{
 							_JustGotWord = false;
-							SDL_StopTextInput();
+							//SDL_StopTextInput();
 							ImGui::SetFocusID(ImGui::GetID("Rank"), ImGui::GetCurrentWindow());
 							ImGui::SetActiveID(ImGui::GetID("Rank"), ImGui::GetCurrentWindow());
 							_HasInit = false;
 						}
 						else
 						{
-						#ifndef NDEBUG
-							debugNetPrintf(DEBUG, "Please capture keyboard for %u. Last: %u; Equal: %d\n", active, last, active == last);
+						#ifdef NETDEBUG
+							debugNetPrintf(DEBUG, "Active ID: %u, Last: %u; Equal: %d\n", active, last, active == last);
 						#endif
-						#ifdef VITA
-							_Vita_ShowIME();
-						#endif
+						
+							if(_HasInit == false)
+							{
+							#ifdef NETDEBUG
+								debugNetPrintf(DEBUG, "Starting text input.\n");
+							#endif
+								vita_start_text_input("Enter your name", default_name, MAX_TEXT_LENGTH);
+								_HasInit = true;
+								_AutoShowKeyboard = false;
+							}
 						}
 					}
-				#endif
-					// END VITA HACK
 				}
 				else
 				{
@@ -270,6 +282,8 @@ void high_score::RenderHighScoreDialog()
 			{
 				default_name[31] = 0;
 				place_new_score_into(dlg_hst, dlg_score, default_name, dlg_position);
+				high_score::write(dlg_hst);
+				high_score::update_live_area(dlg_hst);
 			}
 			ImGui::CloseCurrentPopup();
 		}
@@ -288,6 +302,8 @@ void high_score::RenderHighScoreDialog()
 			{
 				clear_table(dlg_hst);
 				ImGui::CloseCurrentPopup();
+				high_score::write(dlg_hst);
+				high_score::update_live_area(dlg_hst);
 			}
 			ImGui::SetItemDefaultFocus();
 			ImGui::SameLine();
@@ -300,4 +316,246 @@ void high_score::RenderHighScoreDialog()
 
 		ImGui::EndPopup();
 	}
+}
+
+void high_score::update_live_area(high_score_struct* table)
+{
+	SDL_CreateThread(update_live_area_thread, "update_live_area_thread", table);
+}
+
+int high_score::update_live_area_thread(void *tablePtr)
+{
+	high_score_struct* table = reinterpret_cast<high_score_struct*>(tablePtr);
+	
+	int result = sceSysmoduleLoadModule(SCE_SYSMODULE_LIVEAREA);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is libLiveArea loaded? %X\n", result);
+#endif
+	
+	char bufferTitle [300];
+	
+	const char* frameXmlStrTitle = 
+    "<frame id='frame1' rev='1'>" 
+        "<liveitem id='1'><text><str size=\"40\" color=\"#ffffff\" shadow=\"on\">Highscore</str></text></liveitem>" 
+    "</frame>";
+	
+	sprintf(bufferTitle, frameXmlStrTitle);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Frame: %s\n", bufferTitle);
+#endif
+	
+	result = sceLiveAreaUpdateFrameSync(
+		SCE_LIVEAREA_FORMAT_VER_CURRENT,
+		bufferTitle, 
+		strlen(bufferTitle),
+		"app0:my_livearea_update",
+		SCE_LIVEAREA_FLAG_NONE);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+#endif
+	
+	const char* frameXmlStr = 
+    "<frame id='frame%d' rev='1'>" 
+        "<liveitem id='1'><text align=\"left\" word-wrap=\"off\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d. %s: %s</str></text></liveitem>" 
+    "</frame>";
+	
+	const char* frameXmlStrEmpty = 
+    "<frame id='frame%d' rev='1'>" 
+        "<liveitem id='1'><text align=\"left\" word-scroll=\"on\" margin-left=\"20\"><str size=\"30\" color=\"#ffffff\">%d.</str></text></liveitem>" 
+    "</frame>";
+	
+	for (auto position = 0; position < 5; ++position)
+	{
+		char buffer [300];
+		
+		auto tablePtr = &table[position];
+		
+		std::string tmpScore = std::to_string(tablePtr->Score);
+		
+		if (tablePtr->Score != -999)
+		{
+			sprintf(buffer, frameXmlStr, position + 2, position + 1, tablePtr->Name, tmpScore.c_str());
+			
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
+		#endif
+			
+			result = sceLiveAreaUpdateFrameSync(
+				SCE_LIVEAREA_FORMAT_VER_CURRENT,
+				buffer, 
+				strlen(buffer),
+				"app0:my_livearea_update",
+				SCE_LIVEAREA_FLAG_NONE);
+				
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+		#endif
+		}
+		else
+		{
+			sprintf(buffer, frameXmlStrEmpty, position + 2, position + 1);
+			
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Frame: %s\n", buffer);
+		#endif
+			
+			result = sceLiveAreaUpdateFrameSync(
+				SCE_LIVEAREA_FORMAT_VER_CURRENT,
+				buffer, 
+				strlen(buffer),
+				"app0:my_livearea_update",
+				SCE_LIVEAREA_FLAG_NONE);
+				
+		#ifdef NETDEBUG
+			debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+		#endif
+		}
+	}
+	
+	char bufferFramelogo [300];
+	
+	const char* frameLogoXmlStr = 
+    "<frame id='frame7' rev='1'>" 
+        "<liveitem id='1'><image>text_frame7.png</image></liveitem>" 
+    "</frame>";
+	
+	sprintf(bufferFramelogo, frameLogoXmlStr);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Frame: %s\n", bufferFramelogo);
+#endif
+	
+	result = sceLiveAreaUpdateFrameSync(
+		SCE_LIVEAREA_FORMAT_VER_CURRENT,
+		bufferFramelogo, 
+		strlen(bufferFramelogo),
+		"app0:sce_sys/livearea/contents",
+		SCE_LIVEAREA_FLAG_NONE);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is Live Area updated? %X\n", result);
+#endif
+
+	result = sceSysmoduleUnloadModule(SCE_SYSMODULE_LIVEAREA);
+	
+#ifdef NETDEBUG
+	debugNetPrintf(DEBUG, "Is libLiveArea unloaded? %X\n", result);
+#endif
+}
+
+void high_score::vita_start_text_input(const char *guide_text, const char *initial_text, int max_length)
+{
+	if (vita_keyboard_get(guide_text, initial_text, max_length, _IME_Buffer)) {
+		SDL_CreateThread(vita_input_thread, "vita_input_thread", (void *)_IME_Buffer);
+	}
+}
+
+int high_score::vita_keyboard_get(const char *guide_text, const char *initial_text, int max_len, SceWChar16 *buf)
+{
+	SceWChar16 title[SCE_IME_DIALOG_MAX_TITLE_LENGTH];
+	SceWChar16 text[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
+	SceInt32 res;
+
+	SDL_memset(&title, 0, sizeof(title));
+	SDL_memset(&text, 0, sizeof(text));
+	utf8_to_utf16((const uint8_t *)guide_text, title);
+	utf8_to_utf16((const uint8_t *)initial_text, text);
+
+	SceImeDialogParam param;
+	sceImeDialogParamInit(&param);
+
+	param.supportedLanguages = 0;
+	param.languagesForced = SCE_FALSE;
+	param.type = SCE_IME_TYPE_DEFAULT;
+	param.option = 0;
+	param.textBoxMode = SCE_IME_DIALOG_TEXTBOX_MODE_WITH_CLEAR;
+	param.maxTextLength = max_len;
+
+	param.title = title;
+	param.initialText = text;
+	param.inputTextBuffer = buf;
+
+	res = sceImeDialogInit(&param);
+	if (res < 0) {
+		return 0;
+	}
+
+	return 1;
+}
+
+int high_score::vita_input_thread(void *ime_buffer)
+{
+	while (1) {
+		// update IME status. Terminate, if finished
+		SceCommonDialogStatus dialogStatus = sceImeDialogGetStatus();
+		if (dialogStatus == SCE_COMMON_DIALOG_STATUS_FINISHED) {
+			uint8_t utf8_buffer[SCE_IME_DIALOG_MAX_TEXT_LENGTH];
+			SceImeDialogResult result;
+
+			SDL_memset(&result, 0, sizeof(SceImeDialogResult));
+			sceImeDialogGetResult(&result);
+			
+			if (result.button == SCE_IME_DIALOG_BUTTON_ENTER)
+			{
+				// Convert UTF16 to UTF8
+				utf16_to_utf8((SceWChar16 *)ime_buffer, utf8_buffer);
+
+				// send sdl event
+				SDL_Event event;
+				event.text.type = SDL_TEXTINPUT;
+				SDL_utf8strlcpy(event.text.text, (const char *)utf8_buffer, SDL_arraysize(event.text.text));
+				SDL_PushEvent(&event);
+			}
+			
+			sceImeDialogTerm();
+			high_score::vita_done_input();
+			break;
+		}
+	}
+	return 0;
+}
+
+void high_score::utf16_to_utf8(const uint16_t *src, uint8_t *dst)
+{
+	for (int i = 0; src[i]; i++) {
+		if ((src[i] & 0xFF80) == 0) {
+			*(dst++) = src[i] & 0xFF;
+		} else if ((src[i] & 0xF800) == 0) {
+			*(dst++) = ((src[i] >> 6) & 0xFF) | 0xC0;
+			*(dst++) = (src[i] & 0x3F) | 0x80;
+		} else if ((src[i] & 0xFC00) == 0xD800 && (src[i + 1] & 0xFC00) == 0xDC00) {
+			*(dst++) = (((src[i] + 64) >> 8) & 0x3) | 0xF0;
+			*(dst++) = (((src[i] >> 2) + 16) & 0x3F) | 0x80;
+			*(dst++) = ((src[i] >> 4) & 0x30) | 0x80 | ((src[i + 1] << 2) & 0xF);
+			*(dst++) = (src[i + 1] & 0x3F) | 0x80;
+			i += 1;
+		} else {
+			*(dst++) = ((src[i] >> 12) & 0xF) | 0xE0;
+			*(dst++) = ((src[i] >> 6) & 0x3F) | 0x80;
+			*(dst++) = (src[i] & 0x3F) | 0x80;
+		}
+	}
+
+	*dst = '\0';
+}
+
+void high_score::utf8_to_utf16(const uint8_t *src, uint16_t *dst)
+{
+	for (int i = 0; src[i];) {
+		if ((src[i] & 0xE0) == 0xE0) {
+			*(dst++) = ((src[i] & 0x0F) << 12) | ((src[i + 1] & 0x3F) << 6) | (src[i + 2] & 0x3F);
+			i += 3;
+		} else if ((src[i] & 0xC0) == 0xC0) {
+			*(dst++) = ((src[i] & 0x1F) << 6) | (src[i + 1] & 0x3F);
+			i += 2;
+		} else {
+			*(dst++) = src[i];
+			i += 1;
+		}
+	}
+
+	*dst = '\0';
 }

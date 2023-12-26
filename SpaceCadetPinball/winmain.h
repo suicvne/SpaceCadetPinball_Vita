@@ -24,6 +24,7 @@ public:
 	static void pause();
 	static void help_introduction();
 	static void Restart();
+	static void SetImguiEnabled(bool enabled);
 private:
 	static int return_value, bQuit, DispFrameRate, DispGRhistory, activated;
 	static int has_focus, mouse_down, last_mouse_x, last_mouse_y, no_time_loss;
